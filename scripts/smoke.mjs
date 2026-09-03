@@ -11,6 +11,8 @@ delete env.NEXT_PUBLIC_SUPABASE_URL;
 delete env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 delete env.SUPABASE_SECRET_KEY;
 delete env.SETUP_TOKEN;
+delete env.TURNSTILE_SECRET_KEY;
+delete env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--hostname', '127.0.0.1', '--port', String(port)], { env, stdio: ['ignore', 'pipe', 'pipe'] });
 let logs = '';
 child.stdout.on('data', d => { logs += d; });
@@ -34,11 +36,18 @@ try {
   assert.match(html, /Bienvenido a casa/);
   assert.match(html, /fieldset disabled/);
   assert.match(html, /name="viewport"/);
+  assert.match(html, /© 2026\. Jorkcáceres\./);
+  assert.match(html, /\/brand\/favicon\.png/);
+  assert.doesNotMatch(html, /tu@correo\.com|CÁCERES MARZOLA|Soledad, Atlántico|Propiedades CM · Gestión de arrendamientos/);
+  assert.doesNotMatch(html, /<img[^>]+src="\/logo\.png"/);
+  assert.doesNotMatch(html, /<input[^>]+id="email"[^>]+placeholder=/);
   assert.match(login.headers.get('cache-control') || '', /no-store/);
   assert.equal(login.headers.get('x-frame-options'), 'DENY');
-  const png = await fetch(`${base}/logo.png`);
-  assert.equal(png.status, 200);
-  assert.match(png.headers.get('content-type') || '', /image\/png/);
+  for (const asset of ['favicon', 'logo-white', 'logo-color']) {
+    const png = await fetch(`${base}/brand/${asset}.png`);
+    assert.equal(png.status, 200);
+    assert.match(png.headers.get('content-type') || '', /image\/png/);
+  }
   const blocked = await fetch(`${base}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
   assert.equal(blocked.status, 503);
   assert.equal((await blocked.json()).error.includes('no está habilitado'), true);

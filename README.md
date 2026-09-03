@@ -45,6 +45,22 @@ No borrar archivos de configuración basándose solo en un nombre temporal del r
 
 Esta entrega no requiere variables para mostrar el acceso. No introducir secretos para probar el despliegue inicial. `APP_URL` puede configurarse como `https://propiedadescm.jorkcaceres.com`.
 
+### Cloudflare Turnstile
+
+1. Crear un widget Turnstile en Cloudflare, modo **Managed**, autorizando únicamente `propiedadescm.jorkcaceres.com` para producción.
+2. Configurar en Hostinger `NEXT_PUBLIC_TURNSTILE_SITE_KEY` con la clave pública y `TURNSTILE_SECRET_KEY` con la clave secreta del mismo widget. Nunca guardar el secreto en GitHub ni usar claves de pruebas en producción.
+3. Volver a compilar y desplegar: Next.js incorpora las variables `NEXT_PUBLIC_` durante el build.
+
+El widget solo se muestra cuando ambas claves están configuradas. Es adaptable: flexible cuando caben 300 px, compacto en pantallas más estrechas. Si la verificación falla o vence, el envío queda bloqueado y permite reintentar. El servidor incluye validación Siteverify, hostname y acción `login`; rechaza tokens inválidos o reutilizados y falla cerrado si Cloudflare no responde.
+
+**Esta entrega mantiene `AUTH_READY=false`: no inicia sesiones aunque se resuelva el captcha.** La comprobación Siteverify del endpoint se ejecutará cuando se habilite el acceso, antes de la futura autenticación. Las pruebas automatizadas utilizan respuestas simuladas, no acreditan la validación real del widget. Después de configurar las claves, comprobar carga, expiración y reintento en el dominio y en móvil.
+
+Referencias: [integración del widget](https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/) y [validación obligatoria en servidor](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/).
+
+### Identidad visual
+
+Encabezado de acceso solo en texto, sin apellidos ni ubicación, y copyright `© 2026. Jorkcáceres.`. Los archivos suministrados se conservan sin modificar en `public/brand`: `favicon.png`, `logo-white.png` y `logo-color.png`. El favicon se utiliza en los metadatos; las versiones completas quedan disponibles para los módulos y recibos futuros, sin reintroducir el logo en el encabezado del acceso.
+
 ## Desarrollo y validación
 
 ```sh

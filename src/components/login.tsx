@@ -1,43 +1,48 @@
 'use client';
 import { useState } from 'react';
 import { ArrowRight, LockKeyhole, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { Turnstile } from './turnstile';
 
-export function Login({ configured }: { configured: boolean }) {
+export function Login({ configured, turnstileSiteKey }: { configured: boolean; turnstileSiteKey: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [show, setShow] = useState(false);
+  const [token, setToken] = useState('');
+  const [challengeAttempt, setChallengeAttempt] = useState(0);
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!configured || busy) return;
+    if (!configured || busy || !turnstileSiteKey || !token) return;
     setBusy(true);
     setError('');
     const fields = new FormData(event.currentTarget);
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(Object.fromEntries(fields)),
+        body: JSON.stringify({ ...Object.fromEntries(fields), turnstileToken: token }),
       });
       const result = await response.json();
       if (!response.ok) throw Error(result.error || 'No fue posible ingresar.');
       window.location.assign('/panel');
     } catch (error) {
       setError(error instanceof Error ? error.message : 'No fue posible ingresar.');
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+      setToken('');
+      setChallengeAttempt(attempt => attempt + 1);
+    }
   }
   return (
     <main className="login-page">
       <a className="skip" href="#acceso">Ir al acceso</a>
       <aside className="login-brand" aria-label="Propiedades CM">
         <div className="brand">
-          <img src="/logo.png" alt="Propiedades CM" width="76" height="72" />
-          <span aria-hidden="true">PROPIEDADES <b>CM</b></span>
+          <span>PROPIEDADES <b>CM</b></span>
         </div>
         <div className="login-statement">
-          <span className="eyebrow">CÁCERES MARZOLA</span>
           <h2>Nuestras viviendas.<br /><em>Una gestión<br />más sencilla.</em></h2>
           <p>Administración de arrendamientos y trazabilidad de pagos para nuestra familia.</p>
         </div>
-        <div className="brand-foot">Soledad, Atlántico <span>Administración familiar</span></div>
+        <div className="brand-foot">© 2026. Jorkcáceres. <span>Administración familiar</span></div>
       </aside>
       <section className="login-form" id="acceso" aria-labelledby="login-title">
         <div className="login-card">
@@ -52,7 +57,7 @@ export function Login({ configured }: { configured: boolean }) {
           <form onSubmit={submit} aria-busy={busy} aria-describedby={!configured ? 'configuration-notice' : undefined}>
             <fieldset disabled={!configured || busy}>
               <label htmlFor="email">Correo electrónico
-                <input id="email" name="email" type="email" autoComplete="username" placeholder="tu@correo.com" required maxLength={254} autoCapitalize="none" spellCheck={false} />
+                <input id="email" name="email" type="email" autoComplete="username" required maxLength={254} autoCapitalize="none" spellCheck={false} />
               </label>
               <label htmlFor="password">Contraseña</label>
               <div className="password">
@@ -61,14 +66,15 @@ export function Login({ configured }: { configured: boolean }) {
                   {show ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              {error && <p className="error" role="alert">{error}</p>}
-              <button className="primary" type="submit">{busy ? 'Ingresando…' : 'Ingresar'}<ArrowRight size={18} aria-hidden="true" /></button>
             </fieldset>
+            {turnstileSiteKey && <Turnstile siteKey={turnstileSiteKey} attempt={challengeAttempt} onToken={setToken} />}
+            {error && <p className="error" role="alert">{error}</p>}
+            <button className="primary" type="submit" disabled={!configured || busy || !token || !turnstileSiteKey}>{busy ? 'Ingresando…' : 'Ingresar'}<ArrowRight size={18} aria-hidden="true" /></button>
           </form>
           <div className="secure-note"><ShieldCheck size={17} aria-hidden="true" />Acceso exclusivo para personas autorizadas.</div>
           {configured && <p className="small muted">¿Necesitas acceso o recuperar tu cuenta? Contacta al administrador.</p>}
         </div>
-        <footer>Propiedades CM · Gestión de arrendamientos</footer>
+        <footer className="mobile-copyright">© 2026. Jorkcáceres.</footer>
       </section>
     </main>
   );
