@@ -1,0 +1,75 @@
+'use client';
+import { useState } from 'react';
+import { ArrowRight, LockKeyhole, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+
+export function Login({ configured }: { configured: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [show, setShow] = useState(false);
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!configured || busy) return;
+    setBusy(true);
+    setError('');
+    const fields = new FormData(event.currentTarget);
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(Object.fromEntries(fields)),
+      });
+      const result = await response.json();
+      if (!response.ok) throw Error(result.error || 'No fue posible ingresar.');
+      window.location.assign('/panel');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'No fue posible ingresar.');
+    } finally { setBusy(false); }
+  }
+  return (
+    <main className="login-page">
+      <a className="skip" href="#acceso">Ir al acceso</a>
+      <aside className="login-brand" aria-label="Propiedades CM">
+        <div className="brand">
+          <img src="/logo.png" alt="Propiedades CM" width="76" height="72" />
+          <span aria-hidden="true">PROPIEDADES <b>CM</b></span>
+        </div>
+        <div className="login-statement">
+          <span className="eyebrow">CÁCERES MARZOLA</span>
+          <h2>Nuestras viviendas.<br /><em>Una gestión<br />más sencilla.</em></h2>
+          <p>Administración de arrendamientos y trazabilidad de pagos para nuestra familia.</p>
+        </div>
+        <div className="brand-foot">Soledad, Atlántico <span>Administración familiar</span></div>
+      </aside>
+      <section className="login-form" id="acceso" aria-labelledby="login-title">
+        <div className="login-card">
+          <div className="icon-tile"><LockKeyhole aria-hidden="true" /></div>
+          <span className="eyebrow">ACCESO PRIVADO</span>
+          <h1 id="login-title">Bienvenido a casa.</h1>
+          <p className="muted">Ingresa con tu cuenta autorizada.</p>
+          {!configured && <div className="notice" id="configuration-notice" role="status">
+            <strong>Estamos preparando tu espacio.</strong>
+            El acceso estará disponible cuando finalice la configuración. Por ahora, no necesitas ingresar tus datos.
+          </div>}
+          <form onSubmit={submit} aria-busy={busy} aria-describedby={!configured ? 'configuration-notice' : undefined}>
+            <fieldset disabled={!configured || busy}>
+              <label htmlFor="email">Correo electrónico
+                <input id="email" name="email" type="email" autoComplete="username" placeholder="tu@correo.com" required maxLength={254} autoCapitalize="none" spellCheck={false} />
+              </label>
+              <label htmlFor="password">Contraseña</label>
+              <div className="password">
+                <input id="password" name="password" type={show ? 'text' : 'password'} autoComplete="current-password" required maxLength={128} />
+                <button type="button" className="icon-button" onClick={() => setShow(!show)} aria-label={show ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={show}>
+                  {show ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
+              {error && <p className="error" role="alert">{error}</p>}
+              <button className="primary" type="submit">{busy ? 'Ingresando…' : 'Ingresar'}<ArrowRight size={18} aria-hidden="true" /></button>
+            </fieldset>
+          </form>
+          <div className="secure-note"><ShieldCheck size={17} aria-hidden="true" />Acceso exclusivo para personas autorizadas.</div>
+          {configured && <p className="small muted">¿Necesitas acceso o recuperar tu cuenta? Contacta al administrador.</p>}
+        </div>
+        <footer>Propiedades CM · Gestión de arrendamientos</footer>
+      </section>
+    </main>
+  );
+}
