@@ -1,5 +1,6 @@
-import type { NextConfig } from 'next';
-const config: NextConfig = {
+// JavaScript avoids transpiling the configuration before SWC fallback is ready.
+/** @type {import('next').NextConfig} */
+const config = {
   poweredByHeader: false,
   async headers() {
     return [{ source: '/(.*)', headers: [

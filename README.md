@@ -35,6 +35,14 @@ Activo independiente del Portal Jorkcáceres. Se reutiliza conocimiento técnico
 
 El puerto lo proporciona el alojamiento mediante `PORT`; `next start` lo respeta. No usar una exportación estática ni la carpeta `dist`.
 
+### Compatibilidad del compilador
+
+El servidor de compilación de Hostinger reportó `GLIBC_2.29 not found` al cargar SWC nativo. Esto no demuestra un fallo de Node.js: el proceso de Node ya estaba ejecutando Next.js.
+
+La configuración se guarda en `next.config.mjs` para evitar su transpilación TypeScript. `npm run build` utiliza Webpack, porque Turbopack requiere SWC nativo y no admite su alternativa WebAssembly. Next.js puede descargar SWC WASM si el binario nativo no carga; el entorno debe permitir esa descarga. Las advertencias sobre SWC nativo pueden persistir aunque la compilación termine correctamente.
+
+No borrar archivos de configuración basándose solo en un nombre temporal del registro. Cambiar Node o limpiar cachés no actualiza la GLIBC del servidor. Reintentar el despliegue con el nuevo commit y confirmar su resultado en Hostinger.
+
 Esta entrega no requiere variables para mostrar el acceso. No introducir secretos para probar el despliegue inicial. `APP_URL` puede configurarse como `https://propiedadescm.jorkcaceres.com`.
 
 ## Desarrollo y validación
@@ -49,6 +57,8 @@ npm start
 ```
 
 Las pruebas de arranque no contactan Supabase. La validación en el dominio de Hostinger y en un iPhone real se realiza después del despliegue; no queda acreditada por una compilación local.
+
+Para reproducir la ruta WASM con Next.js 16.3.4, se validaron `NEXT_TEST_WASM=1 npm run build` y `NEXT_TEST_WASM=1 node scripts/smoke.mjs`. Es una variable interna de pruebas de Next.js: no configurarla en Hostinger ni incorporarla al script de producción. Esta prueba no reproduce el sistema operativo completo del alojamiento.
 
 ## Próxima entrega
 
