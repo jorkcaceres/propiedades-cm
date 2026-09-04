@@ -117,7 +117,7 @@ Después del despliegue, comprobar manualmente: captcha, ingreso del administrad
 
 ## Identidad
 
-Logo blanco suministrado en acceso y panel privado, completo y sin modificar, con soporte oscuro para contraste. Se mantiene el amarillo del acceso, el copyright `© 2026. Jorkcáceres.` y el correo sin placeholder. Archivos en `public/brand`: `favicon.png`, `logo-white.png`, `logo-color.png`.
+Logo blanco suministrado en acceso y panel privado, completo y sin modificar, conservando su transparencia y sin recuadros añadidos al contenedor. Tanto la sección de marca del acceso como la barra superior del panel son amarillas, según la preferencia del usuario. Se mantienen el copyright `© 2026. Jorkcáceres.` y el correo sin placeholder. Archivos en `public/brand`: `favicon.png`, `logo-white.png`, `logo-color.png`.
 
 ## Historial
 

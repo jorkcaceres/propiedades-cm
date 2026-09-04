@@ -22,7 +22,7 @@
 
 ## Interfaz y seguridad
 
-- Mobile first; conservar el diseño aprobado. Logo blanco suministrado en el acceso y panel privado, con soporte oscuro para contraste.
+- Mobile first; conservar el diseño aprobado. Logo blanco suministrado en el acceso y panel privado, conservando su transparencia. La sección de marca del acceso y la barra superior del panel son amarillas por elección del usuario. No añadir recuadros ni fondos propios al logo o su contenedor; no volver a cambiar la barra a oscuro por iniciativa propia.
 - No modificar ni recrear los logos suministrados para ajustes de interfaz.
 - No reducir validación de sesiones, RLS, autorización o captcha para acelerar desarrollo o despliegues.
 - No inventar datos de negocio ni afirmar pruebas reales que no se hayan ejecutado.
