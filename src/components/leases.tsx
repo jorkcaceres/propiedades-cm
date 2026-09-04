@@ -1,0 +1,29 @@
+'use client';
+import { useState,useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { cop,displayDate,type Choice,type Lease } from '@/lib/finance';
+import { financeAction } from './finance-actions';
+export type LeaseRow=Lease&{property:{name:string}|null;tenant:{name:string}|null;landlord:{name:string}|null};
+export function Leases({rows,properties,tenants,rights}:{rows:LeaseRow[];properties:Choice[];tenants:Choice[];rights:{create:boolean;edit:boolean;archive:boolean;references:boolean}}) {
+ const router=useRouter();const[pending,startTransition]=useTransition();const[busy,setBusy]=useState(false);const[error,setError]=useState('');const[notice,setNotice]=useState('');const[editing,setEditing]=useState<LeaseRow|'new'|null>(null);const[archive,setArchive]=useState<LeaseRow|null>(null);
+ async function mutate(payload:unknown){setBusy(true);setError('');try{await financeAction('leases',payload);setEditing(null);setArchive(null);setNotice('Arrendamiento guardado.');startTransition(()=>router.refresh());}catch(e){setError(e instanceof Error?e.message:'No fue posible guardar.');}finally{setBusy(false);}}
+ function save(event:React.FormEvent<HTMLFormElement>){event.preventDefault();if(busy||pending||!editing)return;const form=new FormData(event.currentTarget);void mutate({action:editing==='new'?'create':'edit',...(editing==='new'?{}:{id:editing.id,version:editing.version}),property_id:form.get('property_id'),tenant_id:form.get('tenant_id'),monthly_rent:Number(form.get('monthly_rent')),start_date:form.get('start_date'),end_date:form.get('end_date')||null,due_day:Number(form.get('due_day'))});}
+ const current=editing&&editing!=='new'?editing:null;
+ return <section aria-busy={busy||pending}>
+  {!editing&&rights.create&&rights.references&&<button className="action-primary" onClick={()=>{setEditing('new');setError('');setNotice('');}}>Nuevo arrendamiento</button>}
+  {(rights.create||rights.edit)&&!rights.references&&<p className="notice">Para crear o editar arrendamientos necesitas consultar viviendas, arrendadores y arrendatarios.</p>}
+  {error&&<p role="alert" className="error">{error}</p>}{notice&&<p role="status" className="success-note">{notice}</p>}
+  {editing?<form className="editor" onSubmit={save}><h2>{current?'Editar arrendamiento':'Nuevo arrendamiento'}</h2><p className="muted">Define la relación y el canon. Esto no genera todavía un contrato PDF. Las condiciones quedan protegidas cuando se registra el primer pago.</p>
+   <fieldset disabled={busy||pending}><div className="form-grid">
+    <label>Vivienda *<select name="property_id" required defaultValue={current?.property_id||''}><option value="">Seleccionar vivienda</option>{properties.filter(p=>p.active||p.id===current?.property_id).map(p=><option key={p.id} value={p.id}>{p.name}{!p.active?' (inactiva)':''}</option>)}</select></label>
+    <label>Arrendatario titular *<select name="tenant_id" required defaultValue={current?.tenant_id||''}><option value="">Seleccionar arrendatario</option>{tenants.filter(p=>p.active||p.id===current?.tenant_id).map(p=><option key={p.id} value={p.id}>{p.name}{!p.active?' (inactivo)':''}</option>)}</select></label>
+    <label>Canon mensual (COP, sin puntos) *<input name="monthly_rent" type="number" inputMode="numeric" required min={1} max={999999999} step={1} defaultValue={current?.monthly_rent}/></label>
+    <label>Día de pago mensual *<input name="due_day" type="number" inputMode="numeric" required min={1} max={31} step={1} defaultValue={current?.due_day||5}/></label>
+    <label>Fecha de inicio *<input name="start_date" type="date" required defaultValue={current?.start_date}/></label><label>Fecha de finalización<input name="end_date" type="date" defaultValue={current?.end_date||''}/></label>
+   </div><p className="small muted">El arrendador se toma de la vivienda. Solo puede existir un arrendamiento activo por vivienda. El día de pago se conserva como referencia; todavía no se generan cobros automáticos.</p><div className="form-actions"><button type="submit" className="action-primary">{busy?'Guardando…':'Guardar arrendamiento'}</button><button type="button" className="action-secondary" onClick={()=>{setEditing(null);setError('');}}>Cancelar</button></div></fieldset>
+  </form>:<div className="record-list">{!rows.length&&<p className="empty-state">No hay arrendamientos en esta lista.</p>}{rows.map(row=><article className="record-card" key={row.id}><div className="record-title"><h2>{row.property?.name||'Vivienda vinculada'}</h2><span className="status-tag">{row.active?'Activo':'Inactivo'}</span></div><p>{row.tenant?.name||'Arrendatario vinculado'}</p><p className="finance-amount">{cop(row.monthly_rent)} <span className="small muted">/ mes</span></p><p className="muted">{displayDate(row.start_date)} → {row.end_date?displayDate(row.end_date):'Sin fecha final'} · Pago: día {row.due_day}</p><p className="small muted">Arrendador: {row.landlord?.name||'Vinculado al arrendamiento'}</p>
+   <div className="form-actions">{rights.edit&&rights.references&&<button disabled={busy||pending} className="action-secondary" onClick={()=>{setEditing(row);setError('');setNotice('');}}>Editar</button>}{rights.archive&&<button disabled={busy||pending} className="action-secondary" onClick={()=>{setArchive(row);setError('');}}>{row.active?'Inactivar':'Reactivar'}</button>}</div>
+   {archive?.id===row.id&&<div className="notice"><p>{row.active?'Al inactivarlo no se podrán registrar nuevos pagos. El historial se conserva.':'Se reactivará si la vivienda no tiene otro arrendamiento activo.'}</p><div className="form-actions"><button disabled={busy||pending} className="action-primary" onClick={()=>void mutate({action:'archive',id:row.id,version:row.version,active:!row.active})}>Confirmar</button><button disabled={busy||pending} className="action-secondary" onClick={()=>setArchive(null)}>Cancelar</button></div></div>}
+  </article>)}</div>}
+ </section>;
+}

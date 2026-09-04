@@ -13,7 +13,7 @@ export function Members({members,actor}:{members:MemberRecord[];actor:Member}) {
   }
   function toggle(permission:string,checked:boolean) {
     const module=permission.split('.')[0];
-    if(checked){const next=new Set([...permissions,permission,`${module}.view`]);if(permission==='properties.create'||permission==='properties.edit')next.add('landlords.view');setPermissions([...next]);}
+    if(checked){const next=new Set([...permissions,permission,`${module}.view`]);if(permission==='properties.create'||permission==='properties.edit')next.add('landlords.view');if(['leases.create','leases.edit'].includes(permission))['properties.view','tenants.view','landlords.view'].forEach(p=>next.add(p));if(permission==='payments.create')['leases.view','properties.view','tenants.view'].forEach(p=>next.add(p));if(permission==='receipts.issue')next.add('payments.view');if(permission==='receipts.void'){next.add('payments.view');next.add('payments.void');}setPermissions([...next].filter(p=>can(actor,p)));}
     else setPermissions(permissions.filter(p=>p!==permission&&!(permission.endsWith('.view')&&p.startsWith(`${module}.`))));
   }
   async function save(event:React.FormEvent) {
@@ -33,7 +33,7 @@ export function Members({members,actor}:{members:MemberRecord[];actor:Member}) {
       <label className="permission-toggle"><input type="checkbox" checked={active} onChange={e=>setActive(e.target.checked)}/>Acceso activo</label>
       {actor.is_admin&&<label className="permission-toggle"><input type="checkbox" checked={admin} onChange={e=>setAdmin(e.target.checked)}/>Administrador: acceso completo, incluida la gestión de usuarios</label>}
       {!admin&&<><div className="form-actions"><button type="button" className="action-secondary" onClick={()=>setPermissions(profilePermissions('consulta').filter(p=>can(actor,p)))}>Solo consulta</button><button type="button" className="action-secondary" onClick={()=>setPermissions([])}>Quitar permisos</button></div>
-        <p className="muted">Selecciona acciones concretas. Los módulos de arrendamientos, pagos y recibos se habilitarán en una próxima etapa.</p>
+        <p className="muted">Selecciona acciones concretas. Emitir y descargar recibos son permisos distintos. Para anular un pago con recibo se requieren ambas autorizaciones de anulación.</p>
         <div className="permission-grid">{Object.entries(permissionGroups).map(([module,group])=><fieldset className="permission-group" key={module}><legend>{group.label}</legend>{group.actions.map(action=>{const code=`${module}.${action}`;return <label className="permission-toggle" key={code}><input type="checkbox" checked={permissions.includes(code)} disabled={!can(actor,code)||(!actor.is_admin&&['users.manage','users.invite'].includes(code))} onChange={e=>toggle(code,e.target.checked)}/>{actionLabels[action]}</label>;})}</fieldset>)}</div></>}
       <div className="form-actions"><button type="submit" className="action-primary">{busy?'Guardando…':'Guardar acceso'}</button><button type="button" className="action-secondary" onClick={()=>{setSelected(null);setError('');}}>Cancelar</button></div></fieldset>
     </form>:<div className="record-list">{members.map(member=><article className="record-card" key={member.id}><div className="record-title"><h2>{member.name}</h2><span className="status-tag">{member.active?'Activo':'Suspendido'}</span></div><p>{member.email}</p><p className="muted">{member.is_admin?'Administrador':`${member.permissions.length} permisos asignados`}{member.id===actor.id?' · Tu cuenta':''}</p>

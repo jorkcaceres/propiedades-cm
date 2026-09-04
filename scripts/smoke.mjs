@@ -28,7 +28,7 @@ try {
     await delay(250);
   }
   assert.ok(ready, `Production server did not start: ${logs}`);
-  for (const path of ['/', '/panel','/panel/landlords','/panel/tenants','/panel/properties','/panel/users','/panel/audit']) {
+  for (const path of ['/', '/panel','/panel/landlords','/panel/tenants','/panel/properties','/panel/users','/panel/audit','/panel/leases','/panel/payments','/panel/receipts','/panel/payments/10000000-0000-4000-8000-000000000001','/panel/receipts/PCM-1234567890124234A234123456789012']) {
     const response = await fetch(base + path);
     assert.ok(response.url.endsWith('/login'));
     assert.equal(response.status, 200);
@@ -57,10 +57,15 @@ try {
   assert.equal((await fetch(`${base}/api/auth/logout`,{method:'POST'})).status,403);
   assert.equal((await fetch(`${base}/api/auth/logout`,{method:'POST',headers:{Origin:base}})).status,200);
   assert.equal((await fetch(`${base}/api/auth/login`)).status,405);
-  for(const endpoint of ['records/landlords','records/tenants','records/properties','members']) {
+  for(const endpoint of ['records/landlords','records/tenants','records/properties','members','finance/leases','finance/payments','finance/issue','finance/void']) {
     assert.equal((await fetch(`${base}/api/${endpoint}`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status,403);
   }
   assert.equal((await fetch(`${base}/not-a-page`)).status, 404);
+  assert.equal((await fetch(`${base}/api/receipts/PCM-1234567890124234A234123456789012/png`)).status,503);
+  assert.equal((await fetch(`${base}/verificar/PCM-0001`)).status,404);
+  const verify=await fetch(`${base}/verificar/PCM-1234567890124234A234123456789012`);
+  assert.match(await verify.text(),/Verificación no disponible/);
+  assert.match(verify.headers.get('cache-control')||'',/no-store/);
   console.log('PASS: production startup, redirects, login, disabled access, security headers, logo and 404. No Supabase connection used.');
 } finally {
   if (child.exitCode === null) {

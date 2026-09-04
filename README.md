@@ -1,6 +1,6 @@
 # Propiedades CM
 
-Versión 0.3.0 · Acceso privado y módulos administrativos.
+Versión 0.4.0 · Arrendamientos, pagos y recibos verificables.
 
 Administración de viviendas arrendadas, trazabilidad de pagos y recibos verificables. Activo independiente del Portal Jorkcáceres: reutiliza conocimientos técnicos y de interfaz, no su modelo de negocio. Referencia: [Jorkcáceres OS](https://github.com/jorkcaceres/jorkcaceres-OS).
 
@@ -19,7 +19,29 @@ Dominio: https://propiedadescm.jorkcaceres.com.
 - Actividad: consulta de los últimos 50 eventos, con referencia al registro y al responsable. Auditoría almacenada en Supabase.
 - Diseño mobile first, identidad aprobada y ningún dato de negocio ficticio.
 
-Pendientes: invitaciones y recuperación de contraseña desde la aplicación, arrendamientos, pagos y recibos PNG verificables. Contratos PDF en una fase posterior. El canon y la relación con el arrendatario se asociarán al arrendamiento, no a un campo mutable de la vivienda.
+- Arrendamientos: vivienda, titular, arrendador tomado de la vivienda, canon entero en COP, fechas y día de pago de referencia. Solo un arrendamiento activo por vivienda; edición con control de versión. Las condiciones no se sobrescriben después del primer pago: para nuevas condiciones, conservar/inactivar el anterior y crear otro.
+- Pagos: canon mensual, anticipado o depósito; fecha del dinero recibido, periodo para cánones, medio, referencia, pagador editable y nota interna. No se aceptan fechas futuras. No hay conciliación bancaria automática: quien registra debe confirmar el ingreso real.
+- Recibos: emisión independiente con permiso propio, código aleatorio único `PCM-` más 32 caracteres hexadecimales, descarga PNG y QR al registro oficial. El mismo pago solo puede tener un recibo. Los reintentos de una misma solicitud no duplican el pago.
+- Anulaciones con motivo, sin eliminar ni cambiar el importe original. Si existe recibo, se requieren `payments.void` y `receipts.void`. El QR y las descargas posteriores reflejan la anulación; los PNG ya enviados no se pueden retirar ni modificar a distancia.
+
+Pendientes: invitaciones y recuperación de contraseña desde la aplicación, saldos/cartera, conciliación bancaria, envío automático y contratos PDF con coarrendatarios. No se declara paz y salvo ni se calculan intereses. Se permiten varios abonos al mismo periodo sin interpretarlos como pago completo.
+
+### Primer recibo
+
+1. Crear el arrendamiento desde **Arrendamientos**, usando las personas y viviendas reales ya registradas.
+2. Ir a **Pagos → Registrar pago recibido** y revisar fecha, valor, concepto, periodo y pagador.
+3. Guardar el pago; en su detalle, seleccionar **Emitir recibo**.
+4. Descargar el PNG y enviarlo al destinatario por el canal habitual. El envío no es automático.
+
+Si falla la conexión al guardar, reintentar en el mismo formulario conserva la solicitud original. Antes de empezar otro formulario, consultar el historial. No se afirma detectar dos registros manuales independientes del mismo movimiento bancario.
+
+### Integridad y privacidad de recibos
+
+Los datos se copian desde la base al registrar el pago y quedan inmutables; no se toman nombres, importes o códigos de parámetros de una descarga. Cambiar luego una vivienda o persona no altera los comprobantes anteriores. La imagen se genera en el servidor con el renderizador versionado v1, que se conserva para recibos existentes; los bytes PNG no se almacenan en un bucket en esta entrega.
+
+La verificación pública requiere el código completo de alta entropía y solo devuelve importe, concepto, fecha, periodo, emisión y estado. No ofrece listados ni revela nombres, dirección, documentos, contactos, notas o referencia bancaria. Cualquier persona con el código puede consultar esos datos mínimos: compartir el enlace solo con quien corresponda. No equivale a firma digital, no verifica los píxeles de una imagen ni acredita la identidad del portador.
+
+La función de consulta pública vive en `pcm_verification`, separada de `pcm_private`, con acceso intencional anónimo por código exacto. Las tablas financieras tienen RLS y solo lectura directa para usuarios autorizados; los cambios pasan por operaciones acotadas que verifican sesión, membresía y acciones. No se necesita una clave privilegiada ni nuevas variables de Hostinger.
 
 ## Hostinger
 
@@ -88,10 +110,11 @@ Aplicada mediante el conector autorizado, sin ejecutar la CLI de Supabase:
 - `20260904000942_pcm_access_foundation`
 - `20260904001113_pcm_explicit_deny_admin_setup`
 - `20260904010758_pcm_administrative_modules`
+- `pcm_payments_receipts` (SQL aditivo en `database/payments_receipts.sql`; consultar su sello temporal en el historial remoto).
 
 Las dos migraciones iniciales se conservan en el historial remoto. El SQL de la tercera está en `database/administrative_modules.sql` y depende de esa base previa; no es un instalador independiente. El despliegue de GitHub no ejecuta migraciones. Las funciones de acceso copiadas en `tests/fixtures` son soporte de pruebas, no una migración alternativa.
 
-Tablas públicas: `pcm_members`, `pcm_permission_catalog`, `pcm_audit_events`, `pcm_landlords`, `pcm_tenants` y `pcm_properties`, todas con RLS. La configuración inicial está en un esquema privado sin acceso de clientes. El catálogo contiene 27 acciones. Los usuarios autenticados no tienen escritura directa sobre miembros, permisos o auditoría. Los nuevos registros se operan bajo políticas por módulo y acción; triggers distinguen editar de cambiar estado.
+Tablas públicas: `pcm_members`, `pcm_permission_catalog`, `pcm_audit_events`, `pcm_landlords`, `pcm_tenants`, `pcm_properties`, `pcm_leases`, `pcm_payments` y `pcm_receipts`, todas con RLS. La configuración inicial está en un esquema privado sin acceso de clientes. El catálogo contiene 27 acciones. Los usuarios autenticados no tienen escritura directa sobre miembros, permisos, auditoría o tablas financieras. Las personas y viviendas se operan bajo políticas por módulo y acción; triggers distinguen editar de cambiar estado.
 
 La autorización exige miembro activo, usuario confirmado no anónimo ni bloqueado y una sesión existente en Supabase asociada al JWT. Una cuenta suspendida pierde acceso en la siguiente comprobación. El último administrador activo está protegido frente a desactivación; la auditoría no permite modificaciones ni borrados ordinarios.
 
@@ -121,6 +144,7 @@ Logo blanco suministrado en acceso y panel privado, completo y sin modificar, co
 
 ## Historial
 
+- 0.4.0: arrendamientos, pagos inmutables, recibos PNG con QR, verificación pública limitada, anulaciones y corrección de fondos de logos.
 - 0.3.0: ambos logos, módulos administrativos, auditoría de registros y flujo de entregas agrupadas con `develop`/`main`.
 - 0.2.0: integración de acceso/salida, autorización por membresía y captcha validado en Supabase.
 - 0.1.0: base desplegable en Hostinger, pantalla de acceso e identidad visual.

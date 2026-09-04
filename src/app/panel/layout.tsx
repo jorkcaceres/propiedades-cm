@@ -12,7 +12,7 @@ export default async function PanelLayout({children}:{children:React.ReactNode})
     throw error;
   }
   const items=[{href:'/panel',label:'Inicio'},
-    ...[['landlords','Arrendadores'],['tenants','Arrendatarios'],['properties','Viviendas'],['users','Usuarios'],['audit','Actividad']]
+    ...[['landlords','Arrendadores'],['tenants','Arrendatarios'],['properties','Viviendas'],['leases','Arrendamientos'],['payments','Pagos'],['receipts','Recibos'],['users','Usuarios'],['audit','Actividad']]
       .filter(([module])=>can(member,`${module}.view`)).map(([module,label])=>({href:`/panel/${module}`,label}))];
   return <div className="account-page">
     <a className="skip" href="#panel-content">Ir al contenido</a>

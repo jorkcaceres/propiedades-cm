@@ -1,6 +1,6 @@
 import { access } from '@/lib/access';
 import { can } from '@/lib/permissions';
-const labels:Record<string,string>={member:'Usuario',landlords:'Arrendador',tenants:'Arrendatario',properties:'Vivienda',insert:'Creación',update:'Edición',archive:'Inactivación',restore:'Reactivación'};
+const labels:Record<string,string>={member:'Usuario',landlords:'Arrendador',tenants:'Arrendatario',properties:'Vivienda',leases:'Arrendamiento',payments:'Pago',receipts:'Recibo',insert:'Creación',update:'Actualización',archive:'Inactivación',restore:'Reactivación'};
 export default async function ActivityPage() {
   const {client,member}=await access();
   if(!can(member,'audit.view'))return <section className="empty-state"><h1>Acceso restringido</h1><p>No tienes permiso para consultar la actividad.</p></section>;
