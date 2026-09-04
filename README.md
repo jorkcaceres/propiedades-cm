@@ -16,7 +16,8 @@ Dominio: https://propiedadescm.jorkcaceres.com.
 - Arrendadores, arrendatarios y viviendas: crear, consultar, buscar por nombre, editar, inactivar y reactivar. Listas paginadas y control de versión para detectar ediciones simultáneas. No se eliminan datos físicamente.
 - Usuarios: autorizar una cuenta ya creada y confirmada en Supabase Auth, asignar permisos y activar/suspender accesos. No se envían invitaciones ni se crean contraseñas desde la aplicación en esta entrega.
 - La administración delegada no permite conceder capacidades superiores a las propias ni modificar administradores. Nadie puede cambiar su propio acceso desde este módulo.
-- Actividad: consulta de los últimos 50 eventos, con referencia al registro y al responsable. Auditoría almacenada en Supabase.
+- Actividad: historial paginado completo, con referencia al registro y al responsable. Auditoría almacenada en Supabase.
+- Todos los listados de registros (incluidos usuarios y actividad) muestran 10 por página, los más recientes primero, con desempate estable por identificador y filtros conservados al navegar. Los selectores de formularios mantienen sus opciones; no se limitan a los 10 registros de la lista.
 - Diseño mobile first, identidad aprobada y ningún dato de negocio ficticio.
 
 - Arrendamientos: vivienda, titular, arrendador tomado de la vivienda, canon entero en COP, fechas y día de pago de referencia. Solo un arrendamiento activo por vivienda; edición con control de versión. Las condiciones no se sobrescriben después del primer pago: para nuevas condiciones, conservar/inactivar el anterior y crear otro.
@@ -143,6 +144,8 @@ Después del despliegue, comprobar manualmente: captcha, ingreso del administrad
 ## Identidad
 
 Logo blanco suministrado en acceso y panel privado, completo y sin modificar, conservando su transparencia y sin recuadros añadidos al contenedor. Tanto la sección de marca del acceso como la barra superior del panel son amarillas, según la preferencia del usuario. Se mantienen el copyright `© 2026. Jorkcáceres.` y el correo sin placeholder. Archivos en `public/brand`: `favicon.png`, `logo-white.png`, `logo-color.png`.
+
+Bienvenida del acceso: «Bienvenido a tus propiedades». Copyright centrado en la columna amarilla; sin «Administración familiar», aviso de recuperación/contacto ni aviso de primer recibo en el inicio privado.
 
 ## Historial
 

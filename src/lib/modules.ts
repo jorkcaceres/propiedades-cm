@@ -26,4 +26,3 @@ export const recordMutation=z.discriminatedUnion('action',[
   z.object({action:z.literal('archive'),id:z.uuid(),version:z.number().int().positive(),active:z.boolean()}).strict(),
 ]);
 export type DataRecord={id:string;name:string;active:boolean;version:number;[key:string]:string|number|boolean|null};
-export const pageSize=20;

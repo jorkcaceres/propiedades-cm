@@ -35,7 +35,8 @@ try {
   }
   const login = await fetch(`${base}/login`);
   const html = await login.text();
-  assert.match(html, /Bienvenido a casa/);
+  assert.match(html, /Bienvenido a tus propiedades/);
+  assert.doesNotMatch(html, /Administración familiar|Necesitas acceso o recuperar tu cuenta/);
   assert.match(html, /fieldset disabled/);
   assert.match(html, /name="viewport"/);
   assert.match(html, /© 2026\. Jorkcáceres\./);

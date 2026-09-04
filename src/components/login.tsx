@@ -42,13 +42,13 @@ export function Login({ configured, turnstileSiteKey }: { configured: boolean; t
           <h2>Nuestras viviendas.<br /><em>Una gestión<br />más sencilla.</em></h2>
           <p>Administración de arrendamientos y trazabilidad de pagos para nuestra familia.</p>
         </div>
-        <div className="brand-foot">© 2026. Jorkcáceres. <span>Administración familiar</span></div>
+        <div className="brand-foot">© 2026. Jorkcáceres.</div>
       </aside>
       <section className="login-form" id="acceso" aria-labelledby="login-title">
         <div className="login-card">
           <div className="icon-tile"><LockKeyhole aria-hidden="true" /></div>
           <span className="eyebrow">ACCESO PRIVADO</span>
-          <h1 id="login-title">Bienvenido a casa.</h1>
+          <h1 id="login-title">Bienvenido a tus propiedades</h1>
           <p className="muted">Ingresa con tu cuenta autorizada.</p>
           {!configured && <div className="notice" id="configuration-notice" role="status">
             <strong>Estamos preparando tu espacio.</strong>
@@ -72,7 +72,6 @@ export function Login({ configured, turnstileSiteKey }: { configured: boolean; t
             <button className="primary" type="submit" disabled={!configured || busy || !token || !turnstileSiteKey}>{busy ? 'Ingresando…' : 'Ingresar'}<ArrowRight size={18} aria-hidden="true" /></button>
           </form>
           <div className="secure-note"><ShieldCheck size={17} aria-hidden="true" />Acceso exclusivo para personas autorizadas.</div>
-          {configured && <p className="small muted">¿Necesitas acceso o recuperar tu cuenta? Contacta al administrador.</p>}
         </div>
         <footer className="mobile-copyright">© 2026. Jorkcáceres.</footer>
       </section>
