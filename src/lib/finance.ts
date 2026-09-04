@@ -11,13 +11,13 @@ export const leaseInput=z.discriminatedUnion('action',[
  z.object({action:z.literal('edit'),id:z.uuid(),version:z.number().int().positive(),...leaseFields}).strict(),
  z.object({action:z.literal('archive'),id:z.uuid(),version:z.number().int().positive(),active:z.boolean()}).strict(),
 ]).refine(v=>v.action==='archive'||!v.end_date||v.end_date>=v.start_date,{message:'La fecha final no puede ser anterior al inicio.'});
-export const paymentInput=z.object({request_id:z.uuid(),lease_id:z.uuid(),amount:money,concept:z.enum(['rent','advance','deposit']),paid_on:date,period_start:optionalDate,period_end:optionalDate,method:z.enum(['transfer','cash','other']),payer_name:z.string().trim().min(2).max(150),reference:z.string().trim().max(120).default(''),notes:z.string().trim().max(500).default('')}).strict().refine(v=>v.concept==='deposit'?v.period_start===null&&v.period_end===null:!!v.period_start&&!!v.period_end&&v.period_end>=v.period_start,{message:'Revisa el periodo del pago.'});
+export const paymentInput=z.object({request_id:z.uuid(),lease_id:z.uuid(),amount:money,concept:z.enum(['rent','advance','deposit']),paid_on:date,method:z.enum(['transfer','cash','other']),payer_name:z.string().trim().min(2).max(150),reference:z.string().trim().max(120).default(''),notes:z.string().trim().max(500).default('')}).strict();
 export const receiptInput=z.object({payment_id:z.uuid()}).strict();
 export const voidInput=z.object({payment_id:z.uuid(),reason:z.string().trim().min(5).max(500)}).strict();
 export const receiptCode=z.string().regex(/^PCM-[0-9A-F]{32}$/);
 export type Lease={id:string;property_id:string;tenant_id:string;landlord_id:string;monthly_rent:number;start_date:string;end_date:string|null;due_day:number;active:boolean;version:number};
 export type Choice={id:string;name:string;active:boolean};
-export type Snapshot={property_name:string;property_address:string;tenant_name:string;landlord_name:string;payer_name:string;amount:number;concept:keyof typeof concepts;paid_on:string;period_start:string|null;period_end:string|null;method:keyof typeof methods;reference:string;currency:'COP'};
+export type Snapshot={property_name:string;property_address:string;tenant_name:string;landlord_name:string;payer_name:string;amount:number;concept:keyof typeof concepts;paid_on:string;method:keyof typeof methods;reference:string;currency:'COP'};
 export type Payment={id:string;lease_id:string;amount:number;concept:keyof typeof concepts;paid_on:string;payer_name:string;notes:string;snapshot:Snapshot;voided_at:string|null;void_reason:string|null;created_at:string};
 export type Receipt={id:string;payment_id:string;code:string;snapshot:Snapshot;renderer_version:number;issued_at:string};
 export function cop(value:number){return new Intl.NumberFormat('es-CO',{style:'currency',currency:'COP',maximumFractionDigits:0}).format(value);}

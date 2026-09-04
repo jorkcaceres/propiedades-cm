@@ -2,7 +2,7 @@ import { z } from 'zod';
 export const modules = {
   landlords:{label:'Arrendadores',singular:'arrendador',description:'Personas que figuran como arrendadoras de las viviendas.'},
   tenants:{label:'Arrendatarios',singular:'arrendatario',description:'Personas que toman una vivienda en arrendamiento.'},
-  properties:{label:'Viviendas',singular:'vivienda',description:'Inmuebles y sus características. El canon y sus periodos se definen en el arrendamiento.'},
+  properties:{label:'Viviendas',singular:'vivienda',description:'Inmuebles y sus características. El canon y las condiciones se definen en el arrendamiento.'},
 } as const;
 export type ModuleKey=keyof typeof modules;
 export function isModule(value:string):value is ModuleKey {return Object.hasOwn(modules,value);}

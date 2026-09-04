@@ -2,12 +2,12 @@ import React from 'react';
 import { ImageResponse } from 'next/og';
 import { toDataURL } from 'qrcode';
 import { amountWords,concepts,cop,displayDate,methods,type Receipt } from './finance';
-// Version 1 is retained for previously issued receipts. Add a renderer version for future redesigns.
-export async function renderReceiptV1(receipt:Receipt,voided:boolean,origin:string,logoData:string) {
- if(receipt.renderer_version!==1)throw Error('Versión de recibo no compatible.');
+// Current presentation omits periods for both legacy and new immutable snapshots.
+export async function renderReceiptV2(receipt:Receipt,voided:boolean,origin:string,logoData:string) {
+ if(![1,2].includes(receipt.renderer_version))throw Error('Versión de recibo no compatible.');
  const s=receipt.snapshot;const verifyURL=new URL(`/verificar/${receipt.code}`,origin).href;
  const qr=await toDataURL(verifyURL,{errorCorrectionLevel:'M',margin:4,width:224,color:{dark:'#242121',light:'#ffffff'}});
- const fields=[['Concepto',concepts[s.concept]],['Fecha del pago',displayDate(s.paid_on)],...(s.period_start?[['Periodo',`${displayDate(s.period_start)} al ${displayDate(s.period_end)}`]]:[]),['Vivienda',`${s.property_name} · ${s.property_address}`],['Arrendatario',s.tenant_name],['Arrendador',s.landlord_name],['Pagado por',s.payer_name],['Medio de pago',methods[s.method]],...(s.reference?[['Referencia',s.reference]]:[])];
+ const fields=[['Concepto',concepts[s.concept]],['Fecha del pago',displayDate(s.paid_on)],['Vivienda',`${s.property_name} · ${s.property_address}`],['Arrendatario',s.tenant_name],['Arrendador',s.landlord_name],['Pagado por',s.payer_name],['Medio de pago',methods[s.method]],...(s.reference?[['Referencia',s.reference]]:[])];
  // Reserve for wide glyphs and uninterrupted references; never truncate evidence.
  const rowHeights=fields.map(([,v])=>54+Math.max(1,Math.ceil(v.length/24))*34);
  const wordHeight=Math.max(1,Math.ceil(amountWords(s.amount).length/46))*30;
@@ -22,7 +22,7 @@ export async function renderReceiptV1(receipt:Receipt,voided:boolean,origin:stri
   </div>
   <div style={{display:'flex',flexDirection:'column',marginTop:'auto',padding:'22px 44px 28px',background:'#f6f7f9'}}>
    <div style={{display:'flex',fontSize:22,marginBottom:12}}>{receipt.code}</div><div style={{display:'flex',gap:22,alignItems:'center'}}><img src={qr} width={184} height={184} alt=""/><div style={{display:'flex',flexDirection:'column',fontSize:23,lineHeight:1.4,width:400}}><span>Consulta el estado actual</span><span>y compara los datos.</span><span style={{fontSize:20,marginTop:12}}>propiedadescm.jorkcaceres.com</span></div></div>
-   <div style={{display:'flex',fontSize:20,lineHeight:1.4,marginTop:14}}>Acredita únicamente el valor registrado. No constituye paz y salvo. La verificación no publica datos personales.</div><div style={{display:'flex',fontSize:18,color:'#64636a',marginTop:16}}>© 2026. Jorkcáceres. · Emitido {displayDate(receipt.issued_at)} · v1</div>
+   <div style={{display:'flex',fontSize:20,lineHeight:1.4,marginTop:14}}>Acredita únicamente el valor registrado. No constituye paz y salvo. La verificación no publica datos personales.</div><div style={{display:'flex',fontSize:18,color:'#64636a',marginTop:16}}>© 2026. Jorkcáceres. · Emitido {displayDate(receipt.issued_at)} · v2</div>
   </div>
  </div>,{width:720,height,headers:{'Content-Type':'image/png','Cache-Control':'private, no-store','Content-Disposition':`attachment; filename="${receipt.code}.png"`}});
 }

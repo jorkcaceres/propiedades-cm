@@ -8,9 +8,9 @@ test('financial inputs reject invalid dates, fractions, extra fields and malform
  const lease={action:'create',property_id:crypto.randomUUID(),tenant_id:crypto.randomUUID(),monthly_rent:650000,start_date:'2026-01-01',end_date:null,due_day:5};
  assert.ok(leaseInput.safeParse(lease).success);
  for(const change of [{monthly_rent:1.2},{end_date:'2025-01-01'},{start_date:'2026-02-30'},{due_day:32},{is_admin:true}])assert.equal(leaseInput.safeParse({...lease,...change}).success,false);
- const payment={request_id:crypto.randomUUID(),lease_id:crypto.randomUUID(),amount:650000,concept:'rent',paid_on:'2026-09-01',period_start:'2026-09-01',period_end:'2026-09-30',method:'transfer',payer_name:'Test tenant'};
+ const payment={request_id:crypto.randomUUID(),lease_id:crypto.randomUUID(),amount:650000,concept:'rent',paid_on:'2026-09-01',method:'transfer',payer_name:'Test tenant'};
  assert.ok(paymentInput.safeParse(payment).success);
- for(const change of [{amount:0},{amount:2.5},{concept:'deposit'},{period_end:'2026-08-01'},{snapshot:{amount:1}}])assert.equal(paymentInput.safeParse({...payment,...change}).success,false);
+ for(const change of [{amount:0},{amount:2.5},{concept:'invalid'},{period_end:'2026-08-01'},{snapshot:{amount:1}}])assert.equal(paymentInput.safeParse({...payment,...change}).success,false);
  assert.ok(receiptCode.safeParse('PCM-'+crypto.randomUUID().replaceAll('-','').toUpperCase()).success);
  assert.equal(receiptCode.safeParse('PCM-0001').success,false);
 });
@@ -91,6 +91,48 @@ test('financial SQL: authorization, immutability, idempotency, snapshots, public
   await assert.rejects(asAdmin('select pcm_issue_receipt($1)',[payment]),/no está disponible/);
   const audits=await db.query("select action,actor_id from pcm_audit_events where entity='payments' and entity_id=$1 order by occurred_at",[payment]);
   assert.deepEqual(audits.rows,[{action:'insert',actor_id:admin},{action:'update',actor_id:admin}]);
+  // Upgrade a populated database, retaining original snapshots but removing unused columns.
+  const legacyUnissued=(await asAdmin('select pcm_record_payment($1) as id',[{...payload,request_id:crypto.randomUUID()}]))[0].id;
+  await db.exec(await readFile(new URL('../database/payment_date_only.sql',import.meta.url),'utf8'));
+  const columns=await db.query("select column_name from information_schema.columns where table_schema='public' and table_name='pcm_payments' and column_name in ('period_start','period_end')");
+  assert.equal(columns.rows.length,0);
+  assert.deepEqual((await asAdmin('select snapshot from pcm_receipts where code=$1',[code]))[0].snapshot,snapshot);
+  assert.equal((await asAdmin('select pcm_record_payment($1) as id',[payload]))[0].id,payment);
+  const upgradedVerification=(await run('anon',null,null,'select pcm_verify_receipt($1) as receipt',[code]))[0].receipt;
+  assert.deepEqual(Object.keys(upgradedVerification).sort(),['amount','code','concept','issued_at','paid_on','voided'].sort());
+  assert.equal(upgradedVerification.voided,true);
+  const legacyNewCode=(await asAdmin('select pcm_issue_receipt($1) as code',[legacyUnissued]))[0].code;
+  const legacyNewReceipt=(await asAdmin('select snapshot,renderer_version from pcm_receipts where code=$1',[legacyNewCode]))[0];
+  assert.equal(legacyNewReceipt.renderer_version,2);
+  assert.ok(!('period_start' in legacyNewReceipt.snapshot));assert.ok(!('period_end' in legacyNewReceipt.snapshot));
+  const {period_start,period_end,...dateOnly}=payload;
+  for(const concept of ['rent','advance','deposit']){
+   const fresh={...dateOnly,concept,request_id:crypto.randomUUID()};
+   await assert.rejects(run('authenticated',other,otherSession,'select pcm_record_payment($1)',[fresh]),/no autorizada/);
+   await assert.rejects(run('authenticated',admin,otherSession,'select pcm_record_payment($1)',[fresh]),/no autorizada/);
+   await assert.rejects(asAdmin('select pcm_record_payment($1)',[{...fresh,paid_on:'2099-01-01'}]),/fecha futura/);
+   const newPayment=(await asAdmin('select pcm_record_payment($1) as id',[fresh]))[0].id;
+   assert.equal((await asAdmin('select pcm_record_payment($1) as id',[fresh]))[0].id,newPayment);
+   await assert.rejects(asAdmin('select pcm_record_payment($1)',[{...fresh,amount:1}]),/otros datos/);
+   const saved=(await asAdmin('select snapshot from pcm_payments where id=$1',[newPayment]))[0].snapshot;
+   assert.equal(saved.paid_on,fresh.paid_on);assert.equal(saved.amount,fresh.amount);
+   assert.ok(!('period_start' in saved));assert.ok(!('period_end' in saved));
+   await assert.rejects(asAdmin('update pcm_payments set amount=1 where id=$1',[newPayment]),/permission denied/);
+   await assert.rejects(db.query('delete from pcm_payments where id=$1',[newPayment]),/inmutable/);
+   const newCode=(await asAdmin('select pcm_issue_receipt($1) as code',[newPayment]))[0].code;
+   assert.notEqual(newCode,code);
+   assert.equal((await asAdmin('select pcm_issue_receipt($1) as code',[newPayment]))[0].code,newCode);
+   await assert.rejects(db.query("update pcm_receipts set snapshot='{}' where code=$1",[newCode]),/inmutable/);
+   await assert.rejects(run('anon',null,null,'select pcm_record_payment($1)',[fresh]),/permission denied/);
+   assert.equal((await run('anon',null,null,'select pcm_verify_receipt($1) as receipt',[newCode]))[0].receipt.voided,false);
+   await assert.rejects(run('authenticated',other,otherSession,'select pcm_void_payment($1,$2)',[newPayment,'Missing receipt permission']),/no autorizada/);
+   await asAdmin('select pcm_void_payment($1,$2)',[newPayment,'Replace incorrect payment']);
+   await asAdmin('select pcm_void_payment($1,$2)',[newPayment,'Replace incorrect payment']);
+   assert.equal((await run('anon',null,null,'select pcm_verify_receipt($1) as receipt',[newCode]))[0].receipt.voided,true);
+   await assert.rejects(asAdmin('select pcm_issue_receipt($1)',[newPayment]),/no está disponible/);
+   const retained=(await asAdmin('select amount,paid_on,snapshot from pcm_payments where id=$1',[newPayment]))[0];
+   assert.equal(retained.amount,fresh.amount);assert.deepEqual(retained.snapshot,saved);
+  }
   await asAdmin('select pcm_save_lease($1)',[{action:'archive',id:lease,version:1,active:false}]);
   await assert.rejects(asAdmin('select pcm_record_payment($1)',[{...payload,request_id:crypto.randomUUID()}]),/arrendamiento activo/);
  }finally{await db.close();}

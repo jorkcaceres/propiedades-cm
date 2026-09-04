@@ -1,6 +1,6 @@
 # Propiedades CM
 
-Versión 0.4.0 · Arrendamientos, pagos y recibos verificables.
+Versión 0.5.0 · Arrendamientos, pagos y recibos verificables.
 
 Administración de viviendas arrendadas, trazabilidad de pagos y recibos verificables. Activo independiente del Portal Jorkcáceres: reutiliza conocimientos técnicos y de interfaz, no su modelo de negocio. Referencia: [Jorkcáceres OS](https://github.com/jorkcaceres/jorkcaceres-OS).
 
@@ -21,28 +21,28 @@ Dominio: https://propiedadescm.jorkcaceres.com.
 - Diseño mobile first, identidad aprobada y ningún dato de negocio ficticio.
 
 - Arrendamientos: vivienda, titular, arrendador tomado de la vivienda, canon entero en COP, fechas y día de pago de referencia. Solo un arrendamiento activo por vivienda; edición con control de versión. Las condiciones no se sobrescriben después del primer pago: para nuevas condiciones, conservar/inactivar el anterior y crear otro.
-- Pagos: canon mensual, anticipado o depósito; fecha del dinero recibido, periodo para cánones, medio, referencia, pagador editable y nota interna. No se aceptan fechas futuras. No hay conciliación bancaria automática: quien registra debe confirmar el ingreso real.
+- Pagos: canon mensual, anticipado o depósito; únicamente fecha del dinero recibido (sin mes ni periodo imputado), medio, referencia, pagador editable y nota interna. No se aceptan fechas futuras. No hay conciliación bancaria automática: quien registra debe confirmar el ingreso real.
 - Recibos: emisión independiente con permiso propio, código aleatorio único `PCM-` más 32 caracteres hexadecimales, descarga PNG y QR al registro oficial. El mismo pago solo puede tener un recibo. Los reintentos de una misma solicitud no duplican el pago.
 - Anulaciones con motivo, sin eliminar ni cambiar el importe original. Si existe recibo, se requieren `payments.void` y `receipts.void`. El QR y las descargas posteriores reflejan la anulación; los PNG ya enviados no se pueden retirar ni modificar a distancia.
 
-Pendientes: invitaciones y recuperación de contraseña desde la aplicación, saldos/cartera, conciliación bancaria, envío automático y contratos PDF con coarrendatarios. No se declara paz y salvo ni se calculan intereses. Se permiten varios abonos al mismo periodo sin interpretarlos como pago completo.
+Pendientes: invitaciones y recuperación de contraseña desde la aplicación, saldos/cartera, conciliación bancaria, envío automático y contratos PDF con coarrendatarios. No se declara paz y salvo ni se calculan intereses. No se asignan los pagos a meses ni se interpretan como pago completo de obligaciones.
 
 ### Primer recibo
 
 1. Crear el arrendamiento desde **Arrendamientos**, usando las personas y viviendas reales ya registradas.
-2. Ir a **Pagos → Registrar pago recibido** y revisar fecha, valor, concepto, **Mes(es) que paga** y pagador. Se pueden añadir varios meses consecutivos; el depósito no pide meses. La fecha del ingreso se conserva independiente del mes pagado y añadir meses no modifica el valor recibido.
+2. Ir a **Pagos → Registrar pago recibido** y revisar fecha del pago, valor, concepto y pagador. No se solicitan meses ni periodos, tampoco para el canon anticipado.
 3. Guardar el pago; en su detalle, seleccionar **Emitir recibo**.
 4. Descargar el PNG y enviarlo al destinatario por el canal habitual. El envío no es automático.
 
 Si falla la conexión al guardar, reintentar en el mismo formulario conserva la solicitud original. Antes de empezar otro formulario, consultar el historial. No se afirma detectar dos registros manuales independientes del mismo movimiento bancario.
 
-La selección mensual se convierte al periodo de calendario que ya valida el servidor, ajustado al inicio/finalización del arrendamiento si el mes es parcial. No se admiten meses repetidos ni huecos entre meses; no se rellenan silenciosamente. El cambio de formulario no reescribe pagos ni recibos existentes y no requiere migraciones de Supabase.
+La migración `database/payment_date_only.sql` elimina exclusivamente `pcm_payments.period_start` y `period_end`, después de comprobar que los valores históricos están conservados en los snapshots inmutables. No reescribe esos snapshots ni la auditoría. Los pagos nuevos no guardan periodos; detalles, verificación y descargas PNG v2 los omiten incluso para recibos anteriores. Las fechas del arrendamiento se mantienen.
 
 ### Integridad y privacidad de recibos
 
-Los datos se copian desde la base al registrar el pago y quedan inmutables; no se toman nombres, importes o códigos de parámetros de una descarga. Cambiar luego una vivienda o persona no altera los comprobantes anteriores. La imagen se genera en el servidor con el renderizador versionado v1, que se conserva para recibos existentes; los bytes PNG no se almacenan en un bucket en esta entrega.
+Los datos se copian desde la base al registrar el pago y quedan inmutables; no se toman nombres, importes o códigos de parámetros de una descarga. Cambiar luego una vivienda o persona no altera los comprobantes anteriores. La imagen se genera en el servidor con el formato v2, sin periodos, tanto para registros nuevos como anteriores. Los snapshots originales siguen inmutables; los bytes PNG no se almacenan en un bucket en esta entrega.
 
-La verificación pública requiere el código completo de alta entropía y solo devuelve importe, concepto, fecha, periodo, emisión y estado. No ofrece listados ni revela nombres, dirección, documentos, contactos, notas o referencia bancaria. Cualquier persona con el código puede consultar esos datos mínimos: compartir el enlace solo con quien corresponda. No equivale a firma digital, no verifica los píxeles de una imagen ni acredita la identidad del portador.
+La verificación pública requiere el código completo de alta entropía y solo devuelve importe, concepto, fecha del pago, emisión y estado. No ofrece listados ni revela nombres, dirección, documentos, contactos, notas o referencia bancaria. Cualquier persona con el código puede consultar esos datos mínimos: compartir el enlace solo con quien corresponda. No equivale a firma digital, no verifica los píxeles de una imagen ni acredita la identidad del portador.
 
 La función de consulta pública vive en `pcm_verification`, separada de `pcm_private`, con acceso intencional anónimo por código exacto. Las tablas financieras tienen RLS y solo lectura directa para usuarios autorizados; los cambios pasan por operaciones acotadas que verifican sesión, membresía y acciones. No se necesita una clave privilegiada ni nuevas variables de Hostinger.
 

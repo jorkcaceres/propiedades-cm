@@ -1,4 +1,4 @@
-export const RELEASE = '0.4.0';
+export const RELEASE = '0.5.0';
 
 // Operational switch stays off until Auth, CAPTCHA and Hostinger are configured.
 // Read at request time so deployment configuration, not a code edit, controls access.
