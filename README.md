@@ -29,11 +29,13 @@ Pendientes: invitaciones y recuperación de contraseña desde la aplicación, sa
 ### Primer recibo
 
 1. Crear el arrendamiento desde **Arrendamientos**, usando las personas y viviendas reales ya registradas.
-2. Ir a **Pagos → Registrar pago recibido** y revisar fecha, valor, concepto, periodo y pagador.
+2. Ir a **Pagos → Registrar pago recibido** y revisar fecha, valor, concepto, **Mes(es) que paga** y pagador. Se pueden añadir varios meses consecutivos; el depósito no pide meses. La fecha del ingreso se conserva independiente del mes pagado y añadir meses no modifica el valor recibido.
 3. Guardar el pago; en su detalle, seleccionar **Emitir recibo**.
 4. Descargar el PNG y enviarlo al destinatario por el canal habitual. El envío no es automático.
 
 Si falla la conexión al guardar, reintentar en el mismo formulario conserva la solicitud original. Antes de empezar otro formulario, consultar el historial. No se afirma detectar dos registros manuales independientes del mismo movimiento bancario.
+
+La selección mensual se convierte al periodo de calendario que ya valida el servidor, ajustado al inicio/finalización del arrendamiento si el mes es parcial. No se admiten meses repetidos ni huecos entre meses; no se rellenan silenciosamente. El cambio de formulario no reescribe pagos ni recibos existentes y no requiere migraciones de Supabase.
 
 ### Integridad y privacidad de recibos
 
