@@ -24,7 +24,7 @@ export async function body(request:Request) {
 export function failure(error:unknown) {
   const headers={'Cache-Control':'private, no-store'};
   if(error instanceof HttpError) return NextResponse.json({error:error.message},{status:error.status,headers});
-  if(error instanceof ZodError) return NextResponse.json({error:'Revisa el correo, la contraseña y la verificación de seguridad.'},{status:400,headers});
+  if(error instanceof ZodError) return NextResponse.json({error:'Revisa los campos obligatorios y sus formatos.'},{status:400,headers});
   console.error('PCM operation failed',error instanceof Error?error.name:'unknown');
   return NextResponse.json({error:'No fue posible completar la operación. Intenta nuevamente.'},{status:500,headers});
 }

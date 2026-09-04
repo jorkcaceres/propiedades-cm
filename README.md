@@ -1,6 +1,6 @@
 # Propiedades CM
 
-Versión 0.2.0 · Acceso privado con Supabase Auth.
+Versión 0.3.0 · Acceso privado y módulos administrativos.
 
 Administración de viviendas arrendadas, trazabilidad de pagos y recibos verificables. Activo independiente del Portal Jorkcáceres: reutiliza conocimientos técnicos y de interfaz, no su modelo de negocio. Referencia: [Jorkcáceres OS](https://github.com/jorkcaceres/jorkcaceres-OS).
 
@@ -12,13 +12,29 @@ Dominio: https://propiedadescm.jorkcaceres.com.
 - Solo ingresan cuentas confirmadas y miembros activos autorizados en la base de datos. Crear una cuenta en Auth no le concede acceso por sí solo.
 - Sesiones en cookies HttpOnly, Secure en producción y SameSite=Lax. Comprobación de usuario y permisos en el servidor; respuestas privadas sin caché.
 - Las cookies de una nueva sesión solo se envían tras comprobar la autorización. Si falla, se intenta revocar esa sesión y se descartan las cookies pendientes.
-- Página privada con los datos de la cuenta y cierre de la sesión actual.
-- Base de permisos por módulo/acción, RLS y auditoría en Supabase. Todavía no existe interfaz para administrar familiares o permisos.
+- Inicio privado, navegación según permisos y cierre de sesión.
+- Arrendadores, arrendatarios y viviendas: crear, consultar, buscar por nombre, editar, inactivar y reactivar. Listas paginadas y control de versión para detectar ediciones simultáneas. No se eliminan datos físicamente.
+- Usuarios: autorizar una cuenta ya creada y confirmada en Supabase Auth, asignar permisos y activar/suspender accesos. No se envían invitaciones ni se crean contraseñas desde la aplicación en esta entrega.
+- La administración delegada no permite conceder capacidades superiores a las propias ni modificar administradores. Nadie puede cambiar su propio acceso desde este módulo.
+- Actividad: consulta de los últimos 50 eventos, con referencia al registro y al responsable. Auditoría almacenada en Supabase.
 - Diseño mobile first, identidad aprobada y ningún dato de negocio ficticio.
 
-Pendientes: recuperación de contraseña desde la aplicación, gestión de usuarios, viviendas, arrendadores, arrendatarios, pagos y recibos PNG verificables. Contratos PDF en una fase posterior.
+Pendientes: invitaciones y recuperación de contraseña desde la aplicación, arrendamientos, pagos y recibos PNG verificables. Contratos PDF en una fase posterior. El canon y la relación con el arrendatario se asociarán al arrendamiento, no a un campo mutable de la vivienda.
 
 ## Hostinger
+
+### Entregas agrupadas
+
+- `develop`: trabajo habitual y ajustes en curso. No conectar esta rama al dominio de producción.
+- `main`: entregas completas, verificadas y listas para publicar. Mantener Hostinger conectado únicamente a esta rama.
+- Guardar avances en `develop` no publica cambios en el dominio. Integrar el conjunto en `main` una sola vez por entrega.
+- Durante el trabajo, usar `npm run check` para tipos y pruebas, sin compilar la aplicación. Antes de publicar código, usar `npm run verify:release`: pruebas, una compilación y comprobación HTTP de producción. La compilación ya valida TypeScript.
+- Cambios únicamente de documentación: comprobar diferencias, guardarlos en `develop` y agruparlos con la próxima entrega; no compilar ni actualizar `main` solo por ellos.
+- No borrar cachés ni reinstalar dependencias si el lockfile no cambia. No añadir otro mecanismo de despliegue que duplique el de Hostinger.
+
+Esta separación reduce la cantidad de despliegues, no promete que cada compilación de Hostinger tarde menos. No se ha configurado una regla de protección obligatoria para `main`: es el flujo de trabajo del proyecto. Los filtros de GitHub Actions y mensajes `[skip ci]` no controlan el webhook independiente de Hostinger.
+
+Hostinger despliega los cambios de la rama conectada: [documentación oficial](https://www.hostinger.com/support/how-to-deploy-apps-built-with-codex-on-hostinger/). Verificar en su panel que la rama siga siendo `main`; no hace falta cambiar claves ni crear otro alojamiento.
 
 | Opción | Valor |
 |---|---|
@@ -71,10 +87,11 @@ Aplicada mediante el conector autorizado, sin ejecutar la CLI de Supabase:
 
 - `20260904000942_pcm_access_foundation`
 - `20260904001113_pcm_explicit_deny_admin_setup`
+- `20260904010758_pcm_administrative_modules`
 
-La fuente de estas migraciones está en el historial remoto de Supabase; este repositorio todavía no incluye una copia SQL reproducible. El despliegue de GitHub no ejecuta migraciones.
+Las dos migraciones iniciales se conservan en el historial remoto. El SQL de la tercera está en `database/administrative_modules.sql` y depende de esa base previa; no es un instalador independiente. El despliegue de GitHub no ejecuta migraciones. Las funciones de acceso copiadas en `tests/fixtures` son soporte de pruebas, no una migración alternativa.
 
-Tablas públicas: `pcm_members`, `pcm_permission_catalog` y `pcm_audit_events`, todas con RLS. La configuración inicial está en un esquema privado sin acceso de clientes. El catálogo contiene 27 acciones. Los usuarios autenticados no tienen escritura directa sobre miembros, permisos o auditoría.
+Tablas públicas: `pcm_members`, `pcm_permission_catalog`, `pcm_audit_events`, `pcm_landlords`, `pcm_tenants` y `pcm_properties`, todas con RLS. La configuración inicial está en un esquema privado sin acceso de clientes. El catálogo contiene 27 acciones. Los usuarios autenticados no tienen escritura directa sobre miembros, permisos o auditoría. Los nuevos registros se operan bajo políticas por módulo y acción; triggers distinguen editar de cambiar estado.
 
 La autorización exige miembro activo, usuario confirmado no anónimo ni bloqueado y una sesión existente en Supabase asociada al JWT. Una cuenta suspendida pierde acceso en la siguiente comprobación. El último administrador activo está protegido frente a desactivación; la auditoría no permite modificaciones ni borrados ordinarios.
 
@@ -90,7 +107,7 @@ npm run typecheck
 node scripts/smoke.mjs
 ```
 
-Las pruebas unitarias simulan el proveedor: cubren validación de entrada, token obligatorio, cuenta autorizada, rechazos, revocación solicitada y permisos. La prueba HTTP de producción arranca sin credenciales y comprueba acceso cerrado, redirecciones, cabeceras, recursos y protección de origen en el cierre de sesión. No acreditan un inicio de sesión real ni la validación real de Turnstile.
+Las pruebas de autenticación simulan el proveedor. Las pruebas SQL ejecutan el esquema en PGlite con identidades/sesiones locales aisladas; comprueban RLS, permisos, auditoría y restricciones de actualización. Nunca insertan personas ficticias en producción. La prueba HTTP arranca sin credenciales y comprueba acceso cerrado en todos los módulos, redirecciones, cabeceras, recursos y protección de origen. No sustituyen la prueba real de ingreso ni el recorrido de formularios en móvil y PC.
 
 Para verificar la alternativa WASM con la versión fijada de Next.js puede ejecutarse `NEXT_TEST_WASM=1 npm run build`. Es una variable interna de prueba: no añadirla a Hostinger. No reproduce todo el sistema operativo del alojamiento.
 
@@ -100,9 +117,10 @@ Después del despliegue, comprobar manualmente: captcha, ingreso del administrad
 
 ## Identidad
 
-Acceso con encabezado textual PROPIEDADES CM, sin apellidos ni ubicación; copyright `© 2026. Jorkcáceres.` y correo sin placeholder. Archivos suministrados en `public/brand`: `favicon.png`, `logo-white.png`, `logo-color.png`.
+Logo blanco suministrado en acceso y panel privado, completo y sin modificar, con soporte oscuro para contraste. Se mantiene el amarillo del acceso, el copyright `© 2026. Jorkcáceres.` y el correo sin placeholder. Archivos en `public/brand`: `favicon.png`, `logo-white.png`, `logo-color.png`.
 
 ## Historial
 
+- 0.3.0: ambos logos, módulos administrativos, auditoría de registros y flujo de entregas agrupadas con `develop`/`main`.
 - 0.2.0: integración de acceso/salida, autorización por membresía y captcha validado en Supabase.
 - 0.1.0: base desplegable en Hostinger, pantalla de acceso e identidad visual.

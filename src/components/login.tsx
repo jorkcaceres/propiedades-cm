@@ -35,8 +35,8 @@ export function Login({ configured, turnstileSiteKey }: { configured: boolean; t
     <main className="login-page">
       <a className="skip" href="#acceso">Ir al acceso</a>
       <aside className="login-brand" aria-label="Propiedades CM">
-        <div className="brand">
-          <span>PROPIEDADES <b>CM</b></span>
+        <div className="login-logo">
+          <img src="/brand/logo-white.png" width={1650} height={1054} alt="Propiedades CM" />
         </div>
         <div className="login-statement">
           <h2>Nuestras viviendas.<br /><em>Una gestión<br />más sencilla.</em></h2>

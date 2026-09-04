@@ -28,7 +28,7 @@ try {
     await delay(250);
   }
   assert.ok(ready, `Production server did not start: ${logs}`);
-  for (const path of ['/', '/panel']) {
+  for (const path of ['/', '/panel','/panel/landlords','/panel/tenants','/panel/properties','/panel/users','/panel/audit']) {
     const response = await fetch(base + path);
     assert.ok(response.url.endsWith('/login'));
     assert.equal(response.status, 200);
@@ -40,6 +40,7 @@ try {
   assert.match(html, /name="viewport"/);
   assert.match(html, /© 2026\. Jorkcáceres\./);
   assert.match(html, /\/brand\/favicon\.png/);
+  assert.match(html, /src="\/brand\/logo-white\.png"/);
   assert.doesNotMatch(html, /tu@correo\.com|CÁCERES MARZOLA|Soledad, Atlántico|Propiedades CM · Gestión de arrendamientos/);
   assert.doesNotMatch(html, /<img[^>]+src="\/logo\.png"/);
   assert.doesNotMatch(html, /<input[^>]+id="email"[^>]+placeholder=/);
@@ -56,6 +57,9 @@ try {
   assert.equal((await fetch(`${base}/api/auth/logout`,{method:'POST'})).status,403);
   assert.equal((await fetch(`${base}/api/auth/logout`,{method:'POST',headers:{Origin:base}})).status,200);
   assert.equal((await fetch(`${base}/api/auth/login`)).status,405);
+  for(const endpoint of ['records/landlords','records/tenants','records/properties','members']) {
+    assert.equal((await fetch(`${base}/api/${endpoint}`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status,403);
+  }
   assert.equal((await fetch(`${base}/not-a-page`)).status, 404);
   console.log('PASS: production startup, redirects, login, disabled access, security headers, logo and 404. No Supabase connection used.');
 } finally {
