@@ -1,67 +1,86 @@
 # Propiedades CM
 
-**Versión:** 0.1.0
+Versión 0.2.0 · Acceso privado con Supabase Auth.
 
-**Estado:** Desarrollo · base desplegable
+Administración de viviendas arrendadas, trazabilidad de pagos y recibos verificables. Activo independiente del Portal Jorkcáceres: reutiliza conocimientos técnicos y de interfaz, no su modelo de negocio. Referencia: [Jorkcáceres OS](https://github.com/jorkcaceres/jorkcaceres-OS).
 
-## Propósito
+Dominio: https://propiedadescm.jorkcaceres.com.
 
-Administrar viviendas arrendadas de la familia Cáceres Marzola, conservar la trazabilidad de pagos y emitir recibos verificables. Dominio previsto: https://propiedadescm.jorkcaceres.com.
+## Alcance actual
 
-Activo independiente del Portal Jorkcáceres. Se reutiliza conocimiento técnico y de experiencia de usuario, no su modelo de negocio ni sus módulos comerciales. Referencia: [Jorkcáceres OS 1.3.0](https://github.com/jorkcaceres/jorkcaceres-OS/tree/c0274d0cbd6a9a962c80c5a7cc71690aac84faa1).
+- Acceso con correo, contraseña y Cloudflare Turnstile; validación del captcha a cargo de Supabase Auth.
+- Solo ingresan cuentas confirmadas y miembros activos autorizados en la base de datos. Crear una cuenta en Auth no le concede acceso por sí solo.
+- Sesiones en cookies HttpOnly, Secure en producción y SameSite=Lax. Comprobación de usuario y permisos en el servidor; respuestas privadas sin caché.
+- Las cookies de una nueva sesión solo se envían tras comprobar la autorización. Si falla, se intenta revocar esa sesión y se descartan las cookies pendientes.
+- Página privada con los datos de la cuenta y cierre de la sesión actual.
+- Base de permisos por módulo/acción, RLS y auditoría en Supabase. Todavía no existe interfaz para administrar familiares o permisos.
+- Diseño mobile first, identidad aprobada y ningún dato de negocio ficticio.
 
-## Alcance de esta entrega
+Pendientes: recuperación de contraseña desde la aplicación, gestión de usuarios, viviendas, arrendadores, arrendatarios, pagos y recibos PNG verificables. Contratos PDF en una fase posterior.
 
-- Next.js, React y TypeScript con versiones fijadas y lockfile.
-- Pantalla de acceso con identidad Propiedades CM y diseño mobile first.
-- Arranque de producción sin credenciales ni conexión con Supabase.
-- Ingreso cerrado explícitamente, también en el servidor. No hay registro público.
-- Base de permisos por módulos y acciones, con pruebas unitarias. No implica permisos operativos: falta implementar y probar la base de datos.
-- No contiene personas, viviendas, usuarios ni recibos ficticios.
-
-## Desplegar en Hostinger
+## Hostinger
 
 | Opción | Valor |
 |---|---|
-| Repositorio | `jorkcaceres/propiedades-cm` |
-| Rama | `main` |
-| Framework | Next.js |
-| Directorio raíz | `/` (raíz del repositorio, no una subcarpeta `propiedades-cm`) |
+| Repositorio / rama | `jorkcaceres/propiedades-cm` / `main` |
+| Framework / raíz | Next.js / `/` |
 | Node.js | 22.x o 24.x |
 | Instalación | `npm ci` |
 | Compilación | `npm run build` |
 | Inicio | `npm start` |
-| Salida de compilación, si se solicita | `.next` |
+| Salida, si se solicita | `.next` |
 
-El puerto lo proporciona el alojamiento mediante `PORT`; `next start` lo respeta. No usar una exportación estática ni la carpeta `dist`.
+El alojamiento proporciona `PORT`. No es una exportación estática ni utiliza `dist`.
 
-### Compatibilidad del compilador
+Se conservan `next.config.mjs` y `next build --webpack`: el entorno de Hostinger reportó una GLIBC incompatible con SWC nativo. Webpack permite la alternativa WASM de Next.js; el entorno debe permitir descargarla. No cambiar a Turbopack ni atribuir ese error exclusivamente a Node.
 
-El servidor de compilación de Hostinger reportó `GLIBC_2.29 not found` al cargar SWC nativo. Esto no demuestra un fallo de Node.js: el proceso de Node ya estaba ejecutando Next.js.
+### Variables de la aplicación
 
-La configuración se guarda en `next.config.mjs` para evitar su transpilación TypeScript. `npm run build` utiliza Webpack, porque Turbopack requiere SWC nativo y no admite su alternativa WebAssembly. Next.js puede descargar SWC WASM si el binario nativo no carga; el entorno debe permitir esa descarga. Las advertencias sobre SWC nativo pueden persistir aunque la compilación termine correctamente.
+Configurar antes de compilar y mantener disponibles en ejecución:
 
-No borrar archivos de configuración basándose solo en un nombre temporal del registro. Cambiar Node o limpiar cachés no actualiza la GLIBC del servidor. Reintentar el despliegue con el nuevo commit y confirmar su resultado en Hostinger.
+| Variable | Valor |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Clave pública publishable del proyecto |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Clave pública del widget de Cloudflare |
+| `APP_URL` | `https://propiedadescm.jorkcaceres.com` |
+| `PCM_AUTH_ENABLED` | `true`, únicamente después de completar la protección en Supabase |
 
-Esta entrega no requiere variables para mostrar el acceso. No introducir secretos para probar el despliegue inicial. `APP_URL` puede configurarse como `https://propiedadescm.jorkcaceres.com`.
+Sin la habilitación explícita o la configuración pública completa, el acceso permanece cerrado. Los cambios en variables `NEXT_PUBLIC_` requieren recompilación y despliegue. Los cambios en los datos o permisos de Supabase no requieren desplegar código.
 
-### Cloudflare Turnstile
+La clave privilegiada `SUPABASE_SECRET_KEY` no es necesaria para este inicio de sesión. No añadirla para resolver problemas de acceso. Nunca compartir claves secretas ni contraseñas en el repositorio.
 
-1. Crear un widget Turnstile en Cloudflare, modo **Managed**, autorizando únicamente `propiedadescm.jorkcaceres.com` para producción.
-2. Configurar en Hostinger `NEXT_PUBLIC_TURNSTILE_SITE_KEY` con la clave pública y `TURNSTILE_SECRET_KEY` con la clave secreta del mismo widget. Nunca guardar el secreto en GitHub ni usar claves de pruebas en producción.
-3. Volver a compilar y desplegar: Next.js incorpora las variables `NEXT_PUBLIC_` durante el build.
+### Supabase Auth y Turnstile
 
-El widget solo se muestra cuando ambas claves están configuradas. Es adaptable: flexible cuando caben 300 px, compacto en pantallas más estrechas. Si la verificación falla o vence, el envío queda bloqueado y permite reintentar. El servidor incluye validación Siteverify, hostname y acción `login`; rechaza tokens inválidos o reutilizados y falla cerrado si Cloudflare no responde.
+1. En Cloudflare, crear un widget Turnstile Managed y autorizar el hostname `propiedadescm.jorkcaceres.com`. No usar claves de prueba en producción.
+2. En Supabase Auth, activar protección CAPTCHA, seleccionar Turnstile y guardar allí la clave secreta del mismo widget. No se necesita `TURNSTILE_SECRET_KEY` en Hostinger.
+3. Desactivar nuevos registros públicos y acceso anónimo. Esta aplicación no contiene registro público, pero también debe bloquearse en la configuración del proveedor.
+4. Configurar Site URL con el dominio HTTPS de la aplicación. No añadir comodines amplios a las URLs permitidas.
+5. Confirmar que la cuenta administradora existe en Auth y tiene una membresía activa autorizada. No conceder permisos mediante `user_metadata`.
+6. Configurar las variables de Hostinger, activar `PCM_AUTH_ENABLED=true` y desplegar.
 
-**Esta entrega mantiene `AUTH_READY=false`: no inicia sesiones aunque se resuelva el captcha.** La comprobación Siteverify del endpoint se ejecutará cuando se habilite el acceso, antes de la futura autenticación. Las pruebas automatizadas utilizan respuestas simuladas, no acreditan la validación real del widget. Después de configurar las claves, comprobar carga, expiración y reintento en el dominio y en móvil.
+El token del widget se envía como `captchaToken` a `signInWithPassword`. Supabase realiza la validación del captcha: no llamar adicionalmente a Siteverify, porque el token es de un solo uso. El widget se adapta al ancho disponible y se reinicia tras un intento, error o expiración.
 
-Referencias: [integración del widget](https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/) y [validación obligatoria en servidor](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/).
+La presencia de variables en Hostinger no demuestra que la protección CAPTCHA esté habilitada en Supabase. Esa configuración y la prueba real del dominio son pasos obligatorios de puesta en marcha.
 
-### Identidad visual
+Referencias: [CAPTCHA en Supabase Auth](https://supabase.com/docs/guides/auth/auth-captcha) y [signInWithPassword](https://supabase.com/docs/reference/javascript/auth-signinwithpassword).
 
-Encabezado de acceso solo en texto, sin apellidos ni ubicación, y copyright `© 2026. Jorkcáceres.`. Los archivos suministrados se conservan sin modificar en `public/brand`: `favicon.png`, `logo-white.png` y `logo-color.png`. El favicon se utiliza en los metadatos; las versiones completas quedan disponibles para los módulos y recibos futuros, sin reintroducir el logo en el encabezado del acceso.
+## Base de acceso en Supabase
 
-## Desarrollo y validación
+Aplicada mediante el conector autorizado, sin ejecutar la CLI de Supabase:
+
+- `20260904000942_pcm_access_foundation`
+- `20260904001113_pcm_explicit_deny_admin_setup`
+
+La fuente de estas migraciones está en el historial remoto de Supabase; este repositorio todavía no incluye una copia SQL reproducible. El despliegue de GitHub no ejecuta migraciones.
+
+Tablas públicas: `pcm_members`, `pcm_permission_catalog` y `pcm_audit_events`, todas con RLS. La configuración inicial está en un esquema privado sin acceso de clientes. El catálogo contiene 27 acciones. Los usuarios autenticados no tienen escritura directa sobre miembros, permisos o auditoría.
+
+La autorización exige miembro activo, usuario confirmado no anónimo ni bloqueado y una sesión existente en Supabase asociada al JWT. Una cuenta suspendida pierde acceso en la siguiente comprobación. El último administrador activo está protegido frente a desactivación; la auditoría no permite modificaciones ni borrados ordinarios.
+
+Antes de ampliar módulos, conservar estas restricciones y añadir pruebas de permisos. La interfaz no es una frontera de seguridad.
+
+## Validación
 
 ```sh
 npm ci
@@ -69,29 +88,21 @@ npm test
 npm run build
 npm run typecheck
 node scripts/smoke.mjs
-npm start
 ```
 
-Las pruebas de arranque no contactan Supabase. La validación en el dominio de Hostinger y en un iPhone real se realiza después del despliegue; no queda acreditada por una compilación local.
+Las pruebas unitarias simulan el proveedor: cubren validación de entrada, token obligatorio, cuenta autorizada, rechazos, revocación solicitada y permisos. La prueba HTTP de producción arranca sin credenciales y comprueba acceso cerrado, redirecciones, cabeceras, recursos y protección de origen en el cierre de sesión. No acreditan un inicio de sesión real ni la validación real de Turnstile.
 
-Para reproducir la ruta WASM con Next.js 16.3.4, se validaron `NEXT_TEST_WASM=1 npm run build` y `NEXT_TEST_WASM=1 node scripts/smoke.mjs`. Es una variable interna de pruebas de Next.js: no configurarla en Hostinger ni incorporarla al script de producción. Esta prueba no reproduce el sistema operativo completo del alojamiento.
+Para verificar la alternativa WASM con la versión fijada de Next.js puede ejecutarse `NEXT_TEST_WASM=1 npm run build`. Es una variable interna de prueba: no añadirla a Hostinger. No reproduce todo el sistema operativo del alojamiento.
 
-## Próxima entrega
+Después del despliegue, comprobar manualmente: captcha, ingreso del administrador, datos de la cuenta, cierre de sesión y rechazo del panel tras salir; repetir en móvil y PC. Comprobar también una cuenta sin membresía activa. Nunca introducir datos de negocio ficticios en producción para estas pruebas.
 
-1. Migraciones y políticas RLS; administrador inicial protegido; sesión y recuperación de acceso.
-2. Gestión de familiares, invitaciones y permisos con comprobación en servidor y base de datos.
-3. CRUD de viviendas, arrendadores y arrendatarios; vínculo de arrendamiento.
-4. Pagos por concepto y periodo, recibos PNG, código aleatorio único y validación QR.
-5. Historial, anulaciones y pruebas de integración con archivos privados.
+`/api/health` informa versión y estado de habilitación; no comprueba disponibilidad de Supabase ni una sesión real.
 
-Los contratos PDF con coarrendatarios pertenecen a una fase posterior. No activar `AUTH_READY` hasta tener la configuración y pruebas de seguridad completas. Las utilidades Supabase son preparación de código, no una integración operativa validada.
+## Identidad
 
-## Seguridad y operación
-
-No almacenar secretos, datos personales, respaldos ni recibos en GitHub. `.env.example` solo documenta nombres para la configuración futura. Mantener claves privilegiadas únicamente en el servidor. El despliegue automático de `main` no aplica migraciones de base de datos.
+Acceso con encabezado textual PROPIEDADES CM, sin apellidos ni ubicación; copyright `© 2026. Jorkcáceres.` y correo sin placeholder. Archivos suministrados en `public/brand`: `favicon.png`, `logo-white.png`, `logo-color.png`.
 
 ## Historial
 
-### 0.1.0
-
-Base ejecutable para resolver la detección de la aplicación en Hostinger. Sin acceso operativo ni cambios en Supabase.
+- 0.2.0: integración de acceso/salida, autorización por membresía y captcha validado en Supabase.
+- 0.1.0: base desplegable en Hostinger, pantalla de acceso e identidad visual.

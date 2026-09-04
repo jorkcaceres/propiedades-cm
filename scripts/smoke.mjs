@@ -13,6 +13,8 @@ delete env.SUPABASE_SECRET_KEY;
 delete env.SETUP_TOKEN;
 delete env.TURNSTILE_SECRET_KEY;
 delete env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+delete env.PCM_AUTH_ENABLED;
+env.APP_URL = `http://127.0.0.1:${port}`;
 const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', '--hostname', '127.0.0.1', '--port', String(port)], { env, stdio: ['ignore', 'pipe', 'pipe'] });
 let logs = '';
 child.stdout.on('data', d => { logs += d; });
@@ -51,6 +53,9 @@ try {
   const blocked = await fetch(`${base}/api/auth/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
   assert.equal(blocked.status, 503);
   assert.equal((await blocked.json()).error.includes('no está habilitado'), true);
+  assert.equal((await fetch(`${base}/api/auth/logout`,{method:'POST'})).status,403);
+  assert.equal((await fetch(`${base}/api/auth/logout`,{method:'POST',headers:{Origin:base}})).status,200);
+  assert.equal((await fetch(`${base}/api/auth/login`)).status,405);
   assert.equal((await fetch(`${base}/not-a-page`)).status, 404);
   console.log('PASS: production startup, redirects, login, disabled access, security headers, logo and 404. No Supabase connection used.');
 } finally {
