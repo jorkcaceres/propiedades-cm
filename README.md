@@ -40,6 +40,8 @@ La migración `database/payment_date_only.sql` elimina exclusivamente `pcm_payme
 
 ### Integridad y privacidad de recibos
 
+Cada pago nuevo toma el arrendador vigente de la vivienda al registrarse, no el arrendador histórico guardado en el arrendamiento. El dato queda congelado en ese pago y en su recibo: cambios posteriores no modifican registros anteriores, aunque el recibo se emita después del cambio. Los reintentos tampoco actualizan el pago original. Regla aplicada mediante `database/payment_current_landlord.sql`; no cambia las condiciones del arrendamiento.
+
 Los datos se copian desde la base al registrar el pago y quedan inmutables; no se toman nombres, importes o códigos de parámetros de una descarga. Cambiar luego una vivienda o persona no altera los comprobantes anteriores. La imagen se genera en el servidor con el formato v2, sin periodos, tanto para registros nuevos como anteriores. Los snapshots originales siguen inmutables; los bytes PNG no se almacenan en un bucket en esta entrega.
 
 La verificación pública requiere el código completo de alta entropía y solo devuelve importe, concepto, fecha del pago, emisión y estado. No ofrece listados ni revela nombres, dirección, documentos, contactos, notas o referencia bancaria. Cualquier persona con el código puede consultar esos datos mínimos: compartir el enlace solo con quien corresponda. No equivale a firma digital, no verifica los píxeles de una imagen ni acredita la identidad del portador.

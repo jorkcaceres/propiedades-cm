@@ -106,6 +106,21 @@ test('financial SQL: authorization, immutability, idempotency, snapshots, public
   assert.equal(legacyNewReceipt.renderer_version,2);
   assert.ok(!('period_start' in legacyNewReceipt.snapshot));assert.ok(!('period_end' in legacyNewReceipt.snapshot));
   const {period_start,period_end,...dateOnly}=payload;
+  // The current property landlord applies only to newly registered payments.
+  const beforeChange={...dateOnly,request_id:crypto.randomUUID()};
+  const beforeChangeId=(await asAdmin('select pcm_record_payment($1) as id',[beforeChange]))[0].id;
+  const beforeChangeSnapshot=(await asAdmin('select snapshot from pcm_payments where id=$1',[beforeChangeId]))[0].snapshot;
+  const leaseBeforeChange=(await asAdmin('select * from pcm_leases where id=$1',[lease]))[0];
+  const currentOwner=crypto.randomUUID();
+  await asAdmin("insert into pcm_landlords(id,name,document_type,document_number) values($1,'Current owner','CC','987654')",[currentOwner]);
+  await asAdmin('update pcm_properties set landlord_id=$1 where id=$2',[currentOwner,home]);
+  await db.exec(await readFile(new URL('../database/payment_current_landlord.sql',import.meta.url),'utf8'));
+  assert.deepEqual((await asAdmin('select * from pcm_leases where id=$1',[lease]))[0],leaseBeforeChange);
+  assert.deepEqual((await asAdmin('select snapshot from pcm_receipts where code=$1',[code]))[0].snapshot,snapshot);
+  assert.equal((await asAdmin('select pcm_record_payment($1) as id',[beforeChange]))[0].id,beforeChangeId);
+  assert.deepEqual((await asAdmin('select snapshot from pcm_payments where id=$1',[beforeChangeId]))[0].snapshot,beforeChangeSnapshot);
+  const lateCode=(await asAdmin('select pcm_issue_receipt($1) as code',[beforeChangeId]))[0].code;
+  assert.equal((await asAdmin('select snapshot from pcm_receipts where code=$1',[lateCode]))[0].snapshot.landlord_name,'Owner original');
   for(const concept of ['rent','advance','deposit']){
    const fresh={...dateOnly,concept,request_id:crypto.randomUUID()};
    await assert.rejects(run('authenticated',other,otherSession,'select pcm_record_payment($1)',[fresh]),/no autorizada/);
@@ -116,11 +131,13 @@ test('financial SQL: authorization, immutability, idempotency, snapshots, public
    await assert.rejects(asAdmin('select pcm_record_payment($1)',[{...fresh,amount:1}]),/otros datos/);
    const saved=(await asAdmin('select snapshot from pcm_payments where id=$1',[newPayment]))[0].snapshot;
    assert.equal(saved.paid_on,fresh.paid_on);assert.equal(saved.amount,fresh.amount);
+   assert.equal(saved.landlord_name,'Current owner');
    assert.ok(!('period_start' in saved));assert.ok(!('period_end' in saved));
    await assert.rejects(asAdmin('update pcm_payments set amount=1 where id=$1',[newPayment]),/permission denied/);
    await assert.rejects(db.query('delete from pcm_payments where id=$1',[newPayment]),/inmutable/);
    const newCode=(await asAdmin('select pcm_issue_receipt($1) as code',[newPayment]))[0].code;
    assert.notEqual(newCode,code);
+   assert.equal((await asAdmin('select snapshot from pcm_receipts where code=$1',[newCode]))[0].snapshot.landlord_name,'Current owner');
    assert.equal((await asAdmin('select pcm_issue_receipt($1) as code',[newPayment]))[0].code,newCode);
    await assert.rejects(db.query("update pcm_receipts set snapshot='{}' where code=$1",[newCode]),/inmutable/);
    await assert.rejects(run('anon',null,null,'select pcm_record_payment($1)',[fresh]),/permission denied/);
@@ -133,6 +150,11 @@ test('financial SQL: authorization, immutability, idempotency, snapshots, public
    const retained=(await asAdmin('select amount,paid_on,snapshot from pcm_payments where id=$1',[newPayment]))[0];
    assert.equal(retained.amount,fresh.amount);assert.deepEqual(retained.snapshot,saved);
   }
+  // Editing the current landlord's name also affects only subsequent payments.
+  await asAdmin("update pcm_landlords set name='Current owner renamed' where id=$1",[currentOwner]);
+  const renamedPayment=(await asAdmin('select pcm_record_payment($1) as id',[{...dateOnly,request_id:crypto.randomUUID()}]))[0].id;
+  assert.equal((await asAdmin('select snapshot from pcm_payments where id=$1',[renamedPayment]))[0].snapshot.landlord_name,'Current owner renamed');
+  assert.deepEqual((await asAdmin('select snapshot from pcm_payments where id=$1',[beforeChangeId]))[0].snapshot,beforeChangeSnapshot);
   await asAdmin('select pcm_save_lease($1)',[{action:'archive',id:lease,version:1,active:false}]);
   await assert.rejects(asAdmin('select pcm_record_payment($1)',[{...payload,request_id:crypto.randomUUID()}]),/arrendamiento activo/);
  }finally{await db.close();}
