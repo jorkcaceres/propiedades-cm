@@ -13,7 +13,7 @@ export function Members({members,actor}:{members:MemberRecord[];actor:Member}) {
   }
   function toggle(permission:string,checked:boolean) {
     const module=permission.split('.')[0];
-    if(checked){const next=new Set([...permissions,permission,`${module}.view`]);if(permission==='properties.create'||permission==='properties.edit')next.add('landlords.view');if(['leases.create','leases.edit'].includes(permission))['properties.view','tenants.view','landlords.view'].forEach(p=>next.add(p));if(permission==='payments.create')['leases.view','properties.view','tenants.view'].forEach(p=>next.add(p));if(permission==='receipts.issue')next.add('payments.view');if(permission==='receipts.void'){next.add('payments.view');next.add('payments.void');}setPermissions([...next].filter(p=>can(actor,p)));}
+    if(checked){const next=new Set([...permissions,permission,`${module}.view`]);if(permission==='properties.create'||permission==='properties.edit')next.add('landlords.view');if(module==='property_references'||module==='property_documents')next.add('properties.view');if(module==='lease_documents')next.add('leases.view');if(['leases.create','leases.edit'].includes(permission))['properties.view','tenants.view','landlords.view'].forEach(p=>next.add(p));if(permission==='payments.create')['leases.view','properties.view','tenants.view'].forEach(p=>next.add(p));if(permission==='receipts.issue')next.add('payments.view');if(permission==='receipts.void'){next.add('payments.view');next.add('payments.void');}setPermissions([...next].filter(p=>can(actor,p)));}
     else setPermissions(permissions.filter(p=>p!==permission&&!(permission.endsWith('.view')&&p.startsWith(`${module}.`))));
   }
   async function save(event:React.FormEvent) {

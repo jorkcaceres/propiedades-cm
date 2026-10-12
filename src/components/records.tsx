@@ -2,10 +2,12 @@
 import { useState,useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { modules,type ModuleKey,type DataRecord } from '@/lib/modules';
+import type { PropertyReference,StoredDocument } from '@/lib/assets';
+import { PropertyAssets } from './property-assets';
 
 type Field={key:string;label:string;required?:boolean;type?:string;max?:number;options?:{value:string;label:string}[]};
 const documentOptions=['CC','CE','NIT','PAS','OTRO'].map(value=>({value,label:value}));
-export function Records({module,records,landlords,rights}:{module:ModuleKey;records:DataRecord[];landlords:{id:string;name:string;active:boolean}[];rights:{create:boolean;edit:boolean;archive:boolean}}) {
+export function Records({module,records,landlords,rights,propertyAssets}:{module:ModuleKey;records:DataRecord[];landlords:{id:string;name:string;active:boolean}[];rights:{create:boolean;edit:boolean;archive:boolean};propertyAssets?:{references:PropertyReference[];documents:StoredDocument[];referenceRights:{view:boolean;create:boolean;edit:boolean;delete:boolean};documentRights:{view:boolean;upload:boolean;edit:boolean;delete:boolean}}}) {
   const router=useRouter();const [pending,startTransition]=useTransition();
   const [editing,setEditing]=useState<DataRecord|'new'|null>(null);
   const [values,setValues]=useState<Record<string,string>>({});const [busy,setBusy]=useState(false);
@@ -63,6 +65,7 @@ export function Records({module,records,landlords,rights}:{module:ModuleKey;reco
       <p className="muted">{module==='properties'?record.address:`${record.document_type} ${record.document_number}`}</p>
       <details><summary>Ver datos</summary><dl className="record-details">{fields.filter(f=>f.key!=='name').map(f=><div key={f.key}><dt>{f.label}</dt><dd>{f.key==='landlord_id'?(landlords.find(l=>l.id===record.landlord_id)?.name||'Sin acceso a los datos del arrendador'):(f.options?.find(o=>o.value===record[f.key])?.label||String(record[f.key]??'')||'Sin registrar')}</dd></div>)}</dl></details>
       <div className="form-actions">{rights.edit&&<button className="action-secondary" disabled={busy||pending} onClick={()=>open(record)}>Editar</button>}{rights.archive&&<button className="action-secondary" disabled={busy||pending} onClick={()=>changeState(record)}>{record.active?'Inactivar':'Reactivar'}</button>}</div>
+      {module==='properties'&&propertyAssets&&<PropertyAssets propertyId={record.id} references={propertyAssets.references.filter(item=>item.property_id===record.id)} documents={propertyAssets.documents.filter(item=>item.property_id===record.id)} referenceRights={propertyAssets.referenceRights} documentRights={propertyAssets.documentRights}/>}
     </article>)}</div>}
   </section>;
 }

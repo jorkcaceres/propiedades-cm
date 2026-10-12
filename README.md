@@ -1,6 +1,6 @@
 # Propiedades CM
 
-Versión 0.5.0 · Arrendamientos, pagos y recibos verificables.
+Versión 0.6.0 · Servicios, documentos privados, arrendamientos, pagos y recibos verificables.
 
 Administración de viviendas arrendadas, trazabilidad de pagos y recibos verificables. Activo independiente del Portal Jorkcáceres: reutiliza conocimientos técnicos y de interfaz, no su modelo de negocio. Referencia: [Jorkcáceres OS](https://github.com/jorkcaceres/jorkcaceres-OS).
 
@@ -19,6 +19,8 @@ Dominio: https://propiedadescm.jorkcaceres.com.
 - Actividad: historial paginado completo, con referencia al registro y al responsable. Auditoría almacenada en Supabase.
 - Todos los listados de registros (incluidos usuarios y actividad) muestran 10 por página, los más recientes primero, con desempate estable por identificador y filtros conservados al navegar. Los selectores de formularios mantienen sus opciones; no se limitan a los 10 registros de la lista.
 - Diseño mobile first, identidad aprobada y ningún dato de negocio ficticio.
+- Cada vivienda integra servicios y referencias flexibles (NIC, contrato, póliza, compañía y servicio), sin añadir una pestaña principal.
+- Viviendas y arrendamientos admiten documentos PDF privados de máximo 20 MB, visor interno, cambio de nombre, reemplazo y eliminación física del archivo. El bucket no es público y las acciones tienen permisos independientes.
 
 - Arrendamientos: vivienda, titular, arrendador tomado de la vivienda, canon entero en COP, fechas y día de pago de referencia. Solo un arrendamiento activo por vivienda; edición con control de versión. Las condiciones no se sobrescriben después del primer pago: para nuevas condiciones, conservar/inactivar el anterior y crear otro.
 - Pagos: canon mensual, anticipado o depósito; únicamente fecha del dinero recibido (sin mes ni periodo imputado), medio, referencia, pagador editable y nota interna. No se aceptan fechas futuras. No hay conciliación bancaria automática: quien registra debe confirmar el ingreso real.
@@ -85,13 +87,14 @@ Configurar antes de compilar y mantener disponibles en ejecución:
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | URL del proyecto Supabase |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Clave pública publishable del proyecto |
+| `SUPABASE_SECRET_KEY` | Clave secreta del servidor para documentos privados; nunca exponer con `NEXT_PUBLIC_` |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Clave pública del widget de Cloudflare |
 | `APP_URL` | `https://propiedadescm.jorkcaceres.com` |
 | `PCM_AUTH_ENABLED` | `true`, únicamente después de completar la protección en Supabase |
 
 Sin la habilitación explícita o la configuración pública completa, el acceso permanece cerrado. Los cambios en variables `NEXT_PUBLIC_` requieren recompilación y despliegue. Los cambios en los datos o permisos de Supabase no requieren desplegar código.
 
-La clave privilegiada `SUPABASE_SECRET_KEY` no es necesaria para este inicio de sesión. No añadirla para resolver problemas de acceso. Nunca compartir claves secretas ni contraseñas en el repositorio.
+La clave `SUPABASE_SECRET_KEY` no participa en el inicio de sesión: se usa exclusivamente en rutas protegidas del servidor para Storage. Configurarla en Hostinger, nunca en el repositorio, el navegador o una variable `NEXT_PUBLIC_`.
 
 ### Supabase Auth y Turnstile
 
@@ -119,7 +122,7 @@ Aplicada mediante el conector autorizado, sin ejecutar la CLI de Supabase:
 
 Las dos migraciones iniciales se conservan en el historial remoto. El SQL de la tercera está en `database/administrative_modules.sql` y depende de esa base previa; no es un instalador independiente. El despliegue de GitHub no ejecuta migraciones. Las funciones de acceso copiadas en `tests/fixtures` son soporte de pruebas, no una migración alternativa.
 
-Tablas públicas: `pcm_members`, `pcm_permission_catalog`, `pcm_audit_events`, `pcm_landlords`, `pcm_tenants`, `pcm_properties`, `pcm_leases`, `pcm_payments` y `pcm_receipts`, todas con RLS. La configuración inicial está en un esquema privado sin acceso de clientes. El catálogo contiene 27 acciones. Los usuarios autenticados no tienen escritura directa sobre miembros, permisos, auditoría o tablas financieras. Las personas y viviendas se operan bajo políticas por módulo y acción; triggers distinguen editar de cambiar estado.
+Las tablas operativas públicas tienen RLS. Los documentos viven en el bucket privado `pcm-private-documents`; sus metadatos y referencias usan tablas separadas por entidad. Los usuarios autenticados no acceden directamente al bucket: las rutas del servidor validan sesión y permiso antes de cargar, visualizar, reemplazar o eliminar.
 
 La autorización exige miembro activo, usuario confirmado no anónimo ni bloqueado y una sesión existente en Supabase asociada al JWT. Una cuenta suspendida pierde acceso en la siguiente comprobación. El último administrador activo está protegido frente a desactivación; la auditoría no permite modificaciones ni borrados ordinarios.
 
@@ -151,6 +154,7 @@ Bienvenida del acceso: «Bienvenido a tus propiedades». Copyright centrado en l
 
 ## Historial
 
+- 0.6.0: servicios y referencias por vivienda; documentos PDF privados para viviendas y arrendamientos, visor interno, permisos granulares y limpieza física de Storage.
 - 0.4.0: arrendamientos, pagos inmutables, recibos PNG con QR, verificación pública limitada, anulaciones y corrección de fondos de logos.
 - 0.3.0: ambos logos, módulos administrativos, auditoría de registros y flujo de entregas agrupadas con `develop`/`main`.
 - 0.2.0: integración de acceso/salida, autorización por membresía y captcha validado en Supabase.
