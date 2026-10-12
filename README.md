@@ -1,6 +1,6 @@
 # Propiedades CM
 
-Versión 0.6.1 · Servicios, documentos privados, arrendamientos, pagos y recibos verificables.
+Versión 0.6.2 · Servicios, documentos privados, arrendamientos, pagos y recibos verificables.
 
 Administración de viviendas arrendadas, trazabilidad de pagos y recibos verificables. Activo independiente del Portal Jorkcáceres: reutiliza conocimientos técnicos y de interfaz, no su modelo de negocio. Referencia: [Jorkcáceres OS](https://github.com/jorkcaceres/jorkcaceres-OS).
 
@@ -154,6 +154,7 @@ Bienvenida del acceso: «Bienvenido a tus propiedades». Copyright centrado en l
 
 ## Historial
 
+- 0.6.2: actualización de seguridad a Next.js 16.4.0, Sharp 0.35.5 y source-map-js 1.2.2; auditoría npm sin vulnerabilidades conocidas.
 - 0.6.1: referencias simplificadas a nombre, identificación y entidad; la entidad se muestra como título de cada tarjeta.
 - 0.6.0: servicios y referencias por vivienda; documentos PDF privados para viviendas y arrendamientos, visor interno, permisos granulares y limpieza física de Storage.
 - 0.4.0: arrendamientos, pagos inmutables, recibos PNG con QR, verificación pública limitada, anulaciones y corrección de fondos de logos.
