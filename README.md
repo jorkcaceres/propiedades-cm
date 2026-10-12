@@ -154,6 +154,7 @@ Bienvenida del acceso: «Bienvenido a tus propiedades». Copyright centrado en l
 
 ## Historial
 
+- 0.6.1: referencias simplificadas a nombre, identificación y entidad; la entidad se muestra como título de cada tarjeta.
 - 0.6.0: servicios y referencias por vivienda; documentos PDF privados para viviendas y arrendamientos, visor interno, permisos granulares y limpieza física de Storage.
 - 0.4.0: arrendamientos, pagos inmutables, recibos PNG con QR, verificación pública limitada, anulaciones y corrección de fondos de logos.
 - 0.3.0: ambos logos, módulos administrativos, auditoría de registros y flujo de entregas agrupadas con `develop`/`main`.
