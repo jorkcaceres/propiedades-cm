@@ -20,7 +20,7 @@ export default async function ModulePage({params,searchParams}:{params:Promise<{
   if(result.error||owners.error)throw Error('No fue posible cargar los registros.');
   const ids=(result.data||[]).map(item=>item.id);const referenceRights={view:can(member,'property_references.view'),create:can(member,'property_references.create'),edit:can(member,'property_references.edit'),delete:can(member,'property_references.delete')};const documentRights={view:can(member,'property_documents.view'),upload:can(member,'property_documents.upload'),edit:can(member,'property_documents.edit'),delete:can(member,'property_documents.delete')};
   const [references,documents]=module==='properties'&&ids.length?await Promise.all([
-    referenceRights.view?client.from('pcm_property_references').select('id,property_id,identifier_type,identifier,company,service,version').in('property_id',ids).order('created_at',{ascending:false}):Promise.resolve({data:[],error:null}),
+    referenceRights.view?client.from('pcm_property_references').select('id,property_id,identifier_type,identifier,company,version').in('property_id',ids).order('created_at',{ascending:false}):Promise.resolve({data:[],error:null}),
     documentRights.view?client.from('pcm_property_documents').select('id,property_id,name,original_name,size_bytes,version,created_at').in('property_id',ids).order('created_at',{ascending:false}):Promise.resolve({data:[],error:null}),
   ]):[{data:[],error:null},{data:[],error:null}];
   if(references.error||documents.error)throw Error('No fue posible cargar los datos asociados a las viviendas.');

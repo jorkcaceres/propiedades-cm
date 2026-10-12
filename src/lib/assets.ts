@@ -10,7 +10,7 @@ export const documentConfig=(scope:DocumentScope)=>scope==='property'
 
 export const referenceInput=z.object({
   property_id:z.uuid(),identifier_type:z.string().trim().min(2).max(80),identifier:z.string().trim().min(1).max(150),
-  company:z.string().trim().min(2).max(150),service:z.string().trim().min(2).max(120),
+  company:z.string().trim().min(2).max(150),
 }).strict();
 export const referenceMutation=z.discriminatedUnion('action',[
   z.object({action:z.literal('edit'),id:z.uuid(),version:z.number().int().positive(),values:referenceInput.omit({property_id:true})}).strict(),
@@ -22,7 +22,7 @@ export const documentMutation=z.discriminatedUnion('action',[
   z.object({action:z.literal('delete'),id:z.uuid(),version:z.number().int().positive()}).strict(),
 ]);
 
-export type PropertyReference={id:string;property_id:string;identifier_type:string;identifier:string;company:string;service:string;version:number};
+export type PropertyReference={id:string;property_id:string;identifier_type:string;identifier:string;company:string;version:number};
 export type StoredDocument={id:string;name:string;original_name:string;size_bytes:number;version:number;created_at:string;property_id?:string;lease_id?:string};
 
 export function safePdfName(name:string){return name.replace(/[\\/\0-\x1f\x7f]/g,'_').slice(0,255)||'documento.pdf';}

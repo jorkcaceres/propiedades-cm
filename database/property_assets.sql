@@ -22,13 +22,12 @@ create table public.pcm_property_references (
   identifier_type text not null check(length(btrim(identifier_type)) between 2 and 80),
   identifier text not null check(length(btrim(identifier)) between 1 and 150),
   company text not null check(length(btrim(company)) between 2 and 150),
-  service text not null check(length(btrim(service)) between 2 and 120),
   version integer not null default 1,
   created_by uuid not null references public.pcm_members(id) on delete restrict,
   updated_by uuid not null references public.pcm_members(id) on delete restrict,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique(property_id,company,service,identifier)
+  unique(property_id,company,identifier_type,identifier)
 );
 create index pcm_property_references_property_idx on public.pcm_property_references(property_id,created_at desc,id);
 create index pcm_property_references_created_by_idx on public.pcm_property_references(created_by);

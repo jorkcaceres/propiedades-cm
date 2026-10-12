@@ -1,6 +1,6 @@
 # Propiedades CM
 
-Versión 0.6.0 · Servicios, documentos privados, arrendamientos, pagos y recibos verificables.
+Versión 0.6.1 · Servicios, documentos privados, arrendamientos, pagos y recibos verificables.
 
 Administración de viviendas arrendadas, trazabilidad de pagos y recibos verificables. Activo independiente del Portal Jorkcáceres: reutiliza conocimientos técnicos y de interfaz, no su modelo de negocio. Referencia: [Jorkcáceres OS](https://github.com/jorkcaceres/jorkcaceres-OS).
 
