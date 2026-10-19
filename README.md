@@ -63,7 +63,7 @@ La función de consulta pública vive en `pcm_verification`, separada de `pcm_pr
 
 Esta separación reduce la cantidad de despliegues, no promete que cada compilación de Hostinger tarde menos. No se ha configurado una regla de protección obligatoria para `main`: es el flujo de trabajo del proyecto. Los filtros de GitHub Actions y mensajes `[skip ci]` no controlan el webhook independiente de Hostinger.
 
-Hostinger despliega los cambios de la rama conectada: [documentación oficial](https://www.hostinger.com/support/how-to-deploy-apps-built-with-codex-on-hostinger/). Verificar en su panel que la rama siga siendo `main`; no hace falta cambiar claves ni crear otro alojamiento.
+Hostinger despliega los cambios de la rama conectada: [documentación oficial](https://docs.hostinger.com/node.js/github). Verificar en su panel que la rama siga siendo `main`; no hace falta cambiar claves ni crear otro alojamiento.
 
 | Opción | Valor |
 |---|---|

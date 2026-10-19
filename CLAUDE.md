@@ -1,5 +1,14 @@
 # Propiedades CM — reglas de trabajo
 
+Instrucciones obligatorias para Claude en este repositorio. Fuente oficial de criterio: [Jorkcáceres OS](https://github.com/jorkcaceres/jorkcaceres-OS), en especial `docs/activos/Propiedades_CM.md` y `docs/estandares/Mantenimiento_de_Activos.md`. Responder en español.
+
+## Aprobación explícita
+
+- Integrar en `main` (publica en producción).
+- Aplicar SQL o migraciones en Supabase (`uhemlkqxsdvwxifdmizk`).
+- Cambiar configuración de Auth, Storage, captcha o variables de Hostinger.
+- Eliminar datos o archivos.
+
 ## Alcance e infraestructura
 
 - Activo independiente de los otros proyectos Jorkcáceres. Reutilizar aprendizajes técnicos, no sus modelos de negocio.
