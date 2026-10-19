@@ -1,6 +1,6 @@
 # Propiedades CM — reglas de trabajo
 
-Instrucciones obligatorias para Claude en este repositorio. Fuente oficial de criterio: [Jorkcáceres OS](https://github.com/jorkcaceres/jorkcaceres-OS), en especial `docs/activos/Propiedades_CM.md` y `docs/estandares/Mantenimiento_de_Activos.md`. Responder en español.
+Instrucciones obligatorias para Claude en este repositorio. El estándar común está en [Jorkcáceres OS](https://github.com/jorkcaceres/jorkcaceres-OS): `docs/estandares/Mantenimiento_de_Activos.md` (flujo, aprobaciones, seguridad y reversión) y `docs/activos/Propiedades_CM.md` (alcance del activo). Este archivo solo contiene lo propio de Propiedades CM. Responder en español.
 
 ## Aprobación explícita
 
